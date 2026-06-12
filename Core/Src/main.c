@@ -27,7 +27,8 @@
 #include "system_config.h"
 #include "display_manager.h"
 #include <stdio.h>
-#include<string.h>
+#include <string.h>
+#include "uart_protocol.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -69,11 +70,15 @@ volatile uint8_t time_counter = 0;
 volatile uint8_t display_flag = 0;
 volatile uint8_t display_time_counter = 0;
 
+char tx_sensor_data_buffer[64];
 uint8_t first_measurement_flag = 0;
 uint8_t display_error_flag = 0;
+volatile uint8_t tx_busy = 0;
 
 volatile SystemConfig_t system_config;
 
+uint8_t rx_data = 0;
+volatile uint8_t rx_command_ready = 0;
 /* USER CODE END 0 */
 
 /**
@@ -110,6 +115,7 @@ int main(void) {
 	/* USER CODE BEGIN 2 */
 
 	HAL_TIM_Base_Start_IT(&htim10);
+	HAL_UART_Receive_IT(&huart2, &rx_data, 1);
 
 	BME280_HandleTypeDef bme;
 	bme.hi2c = &hi2c1;
@@ -135,9 +141,9 @@ int main(void) {
 	system_config.temperature.max_error = 35.0f;
 
 	system_config.pressure.min_warning = 995.0f;
-	system_config.pressure.max_warning = 1015.0f;
+	system_config.pressure.max_warning = 1050.0f;
 	system_config.pressure.min_error = 900.0f;
-	system_config.pressure.max_error = 1020.0f;
+	system_config.pressure.max_error = 1100.0f;
 
 	system_config.humidity.min_warning = 15.0f;
 	system_config.humidity.max_warning = 85.0f;
@@ -147,11 +153,11 @@ int main(void) {
 	system_config.measurement_interval_s = 5;
 	system_config.display_interval_s = 1;
 
-	char tx_sensor_data_buffer[64];
 	uint8_t measurement_in_progress = 0;
 
 	if (BME280_Init(&bme) != HAL_OK) {
 		// TODO: add error handling later.
+//		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 	}
 
 	if (SSD1306_Init(&ssd) != SSD1306_OK) {
@@ -168,6 +174,11 @@ int main(void) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
+
+		if (rx_command_ready == 1) {
+			UART_Task(&rx_command_ready, &system_config, &huart2);
+
+		}
 
 		if (first_measurement_flag && display_flag && display_error_flag) {
 			if (DisplayUpdateErrorBlink(&ssd, &sensor_data) == HAL_OK) {
@@ -203,25 +214,25 @@ int main(void) {
 							sensor_data.temperature, sensor_data.humidity,
 							sensor_data.pressure, sensor_data.timestamp_ms);
 
-					if (HAL_UART_GetState(&huart2) == HAL_UART_STATE_READY) {
+					if (tx_busy == 0) {
 						if (HAL_UART_Transmit_IT(&huart2,
 								(uint8_t*) tx_sensor_data_buffer,
 								strlen(tx_sensor_data_buffer)) == HAL_OK) {
-
+							tx_busy = 1;
 							measurement_in_progress = 0;
 							measurement_flag = 0;
-						} else {
-							// TODO: add error handling later.
-
 						}
 					}
+
 				} else {
 					// TODO: add error handling later.
 				}
 
 			}
 		}
+
 	}
+
 	/* USER CODE END 3 */
 }
 
@@ -275,6 +286,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		time_counter++;
 		display_time_counter++;
+
 		if (time_counter >= system_config.measurement_interval_s) {
 			measurement_flag = 1;
 			time_counter = 0;
@@ -286,6 +298,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		}
 	}
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+
+	if (huart == &huart2) {
+		UART_ProcessRxData(&rx_data, &rx_command_ready);
+		HAL_UART_Receive_IT(&huart2, &rx_data, 1);
+	}
+
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart == &huart2) {
+		tx_busy = 0;
+	}
+}
+
 /* USER CODE END 4 */
 
 /**
