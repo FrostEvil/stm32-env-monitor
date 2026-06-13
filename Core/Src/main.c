@@ -64,6 +64,9 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+Env_Monitor_HandleTypeDef env_monitor = { 0 };
+
 volatile uint8_t measurement_flag = 0;
 volatile uint8_t time_counter = 0;
 
@@ -74,8 +77,6 @@ char tx_sensor_data_buffer[64];
 uint8_t first_measurement_flag = 0;
 uint8_t display_error_flag = 0;
 volatile uint8_t tx_busy = 0;
-
-volatile SystemConfig_t system_config;
 
 uint8_t rx_data = 0;
 volatile uint8_t rx_command_ready = 0;
@@ -117,54 +118,51 @@ int main(void) {
 	HAL_TIM_Base_Start_IT(&htim10);
 	HAL_UART_Receive_IT(&huart2, &rx_data, 1);
 
-	BME280_HandleTypeDef bme;
-	bme.hi2c = &hi2c1;
-	bme.address = BME280_I2C_ADDR_LOW;
-	bme.mode = BME280_SLEEP_MODE;
-	bme.osrs = BME280_OSRS_X1;
+	env_monitor.bme.hi2c = &hi2c1;
+	env_monitor.bme.address = BME280_I2C_ADDR_LOW;
+	env_monitor.bme.mode = BME280_SLEEP_MODE;
+	env_monitor.bme.osrs = BME280_OSRS_X1;
 
-	SensorData_t sensor_data;
-	sensor_data.temperature = 0;
-	sensor_data.pressure = 0;
-	sensor_data.humidity = 0;
-	sensor_data.valid = 1; //Default 1 to call BME280_TriggerForcedMeasurement() function for the first time
-	sensor_data.timestamp_ms = HAL_GetTick();
+	env_monitor.sensor_data.temperature = 0;
+	env_monitor.sensor_data.pressure = 0;
+	env_monitor.sensor_data.humidity = 0;
+	env_monitor.sensor_data.valid = 1; //Default 1 to call BME280_TriggerForcedMeasurement() function for the first time
+	env_monitor.sensor_data.timestamp_ms = HAL_GetTick();
 
-	SSD1306_HandleTypeDef ssd;
-	ssd.hi2c = &hi2c1;
-	ssd.address = SSD1306_I2C_ADDR
+	env_monitor.ssd.hi2c = &hi2c1;
+	env_monitor.ssd.address = SSD1306_I2C_ADDR
 	;
 
-	system_config.temperature.min_warning = -5.0f;
-	system_config.temperature.max_warning = 30.0f;
-	system_config.temperature.min_error = -10.0f;
-	system_config.temperature.max_error = 35.0f;
+	env_monitor.system_config.temperature.min_warning = -5.0f;
+	env_monitor.system_config.temperature.max_warning = 30.0f;
+	env_monitor.system_config.temperature.min_error = -10.0f;
+	env_monitor.system_config.temperature.max_error = 35.0f;
 
-	system_config.pressure.min_warning = 995.0f;
-	system_config.pressure.max_warning = 1050.0f;
-	system_config.pressure.min_error = 900.0f;
-	system_config.pressure.max_error = 1100.0f;
+	env_monitor.system_config.pressure.min_warning = 995.0f;
+	env_monitor.system_config.pressure.max_warning = 1050.0f;
+	env_monitor.system_config.pressure.min_error = 900.0f;
+	env_monitor.system_config.pressure.max_error = 1100.0f;
 
-	system_config.humidity.min_warning = 15.0f;
-	system_config.humidity.max_warning = 85.0f;
-	system_config.humidity.min_error = 10.0f;
-	system_config.humidity.max_error = 50.0f;
+	env_monitor.system_config.humidity.min_warning = 20.0f;
+	env_monitor.system_config.humidity.max_warning = 70.0f;
+	env_monitor.system_config.humidity.min_error = 10.0f;
+	env_monitor.system_config.humidity.max_error = 85.0f;
 
-	system_config.measurement_interval_s = 5;
-	system_config.display_interval_s = 1;
+	env_monitor.system_config.measurement_interval_s = 5;
+	env_monitor.system_config.display_interval_s = 1;
 
 	uint8_t measurement_in_progress = 0;
 
-	if (BME280_Init(&bme) != HAL_OK) {
+	if (BME280_Init(&env_monitor.bme) != HAL_OK) {
 		// TODO: add error handling later.
 //		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
 	}
 
-	if (SSD1306_Init(&ssd) != SSD1306_OK) {
+	if (SSD1306_Init(&env_monitor.ssd) != SSD1306_OK) {
 		// TODO: add error handling later.
 	}
 
-	DisplayStartingScreen(&ssd);
+	DisplayStartingScreen(&env_monitor.ssd);
 
 	/* USER CODE END 2 */
 
@@ -176,12 +174,13 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		if (rx_command_ready == 1) {
-			UART_Task(&rx_command_ready, &system_config, &huart2);
+			UART_Task(&rx_command_ready, &env_monitor, &huart2);
 
 		}
 
 		if (first_measurement_flag && display_flag && display_error_flag) {
-			if (DisplayUpdateErrorBlink(&ssd, &sensor_data) == HAL_OK) {
+			if (DisplayUpdateErrorBlink(&env_monitor.ssd,
+					&env_monitor.sensor_data) == HAL_OK) {
 				display_flag = 0;
 			}
 
@@ -190,29 +189,35 @@ int main(void) {
 		if (measurement_flag) {
 
 			if (measurement_in_progress == 0) {
-				if (BME280_TriggerForcedMeasurement(&bme) == HAL_OK) {
+				if (BME280_TriggerForcedMeasurement(&env_monitor.bme)
+						== HAL_OK) {
 					measurement_in_progress = 1;
 				} else {
 					// TODO: add error handling later.
 				}
 			}
 
-			if (BME280_IsMeasurementReady(&bme, &sensor_data.valid) == HAL_OK
-					&& sensor_data.valid) {
-				if (BME280_ReadMeasurements(&bme, &sensor_data.temperature,
-						&sensor_data.pressure, &sensor_data.humidity)
-						== HAL_OK) {
+			if (BME280_IsMeasurementReady(&env_monitor.bme,
+					&env_monitor.sensor_data.valid) == HAL_OK
+					&& env_monitor.sensor_data.valid) {
+				if (BME280_ReadMeasurements(&env_monitor.bme,
+						&env_monitor.sensor_data.temperature,
+						&env_monitor.sensor_data.pressure,
+						&env_monitor.sensor_data.humidity) == HAL_OK) {
 					first_measurement_flag = 1;
 
-					DisplayMeasurements(&sensor_data, &system_config, &ssd,
+					DisplayMeasurements(&env_monitor.sensor_data,
+							&env_monitor.system_config, &env_monitor.ssd,
 							&display_error_flag);
 
-					sensor_data.timestamp_ms = HAL_GetTick();
+					env_monitor.sensor_data.timestamp_ms = HAL_GetTick();
 					snprintf(tx_sensor_data_buffer,
 							sizeof(tx_sensor_data_buffer),
 							"T:%.1f;H:%.1f;P%.1f;UPT_MS:%lu;\r\n",
-							sensor_data.temperature, sensor_data.humidity,
-							sensor_data.pressure, sensor_data.timestamp_ms);
+							env_monitor.sensor_data.temperature,
+							env_monitor.sensor_data.humidity,
+							env_monitor.sensor_data.pressure,
+							env_monitor.sensor_data.timestamp_ms);
 
 					if (tx_busy == 0) {
 						if (HAL_UART_Transmit_IT(&huart2,
@@ -287,12 +292,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		time_counter++;
 		display_time_counter++;
 
-		if (time_counter >= system_config.measurement_interval_s) {
+		if (time_counter >= env_monitor.system_config.measurement_interval_s) {
 			measurement_flag = 1;
 			time_counter = 0;
 		}
 
-		if (display_time_counter >= system_config.display_interval_s) {
+		if (display_time_counter
+				>= env_monitor.system_config.display_interval_s) {
 			display_flag = 1;
 			display_time_counter = 0;
 		}

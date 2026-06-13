@@ -11,6 +11,8 @@
 #include "usart.h"
 #include <stdlib.h>
 #include "system_config.h"
+#include "ssd1306.h"
+#include "bme280.h"
 
 char rx_data_buffer[RX_RING_BUFFER_SIZE];
 char rx_command_buffer[RX_COMMAND_BUFFER_SIZE];
@@ -25,214 +27,287 @@ ParseCommand_t parsed;
 HAL_StatusTypeDef command_status;
 
 HAL_StatusTypeDef SetTempMinErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->temperature.min_warning) {
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.temperature.min_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->temperature.min_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.temperature.min_error = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMaxErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->temperature.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.temperature.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->temperature.max_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.temperature.max_error = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMinWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->temperature.min_error
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->temperature.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.temperature.min_error
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.temperature.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->temperature.min_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.temperature.min_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMaxWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->temperature.min_warning
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->temperature.max_error) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.temperature.min_warning
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.temperature.max_error) {
 		return HAL_ERROR;
 	}
 
-	system_config->temperature.max_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.temperature.max_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMinErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->pressure.min_warning) {
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.pressure.min_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->pressure.min_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.pressure.min_error = strtof(param, NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMaxErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->pressure.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.pressure.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->pressure.max_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.pressure.max_error = strtof(param, NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMinWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->pressure.min_error
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->pressure.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.pressure.min_error
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.pressure.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->pressure.min_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.pressure.min_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMaxWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->pressure.min_warning
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->pressure.max_error) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.pressure.min_warning
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.pressure.max_error) {
 		return HAL_ERROR;
 	}
 
-	system_config->pressure.max_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.pressure.max_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMinErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->humidity.min_warning) {
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.humidity.min_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->humidity.min_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.humidity.min_error = strtof(param, NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMaxErr(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->humidity.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.humidity.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->humidity.max_error = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.humidity.max_error = strtof(param, NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMinWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->humidity.min_error
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->humidity.max_warning) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.humidity.min_error
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.humidity.max_warning) {
 		return HAL_ERROR;
 	}
 
-	system_config->humidity.min_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.humidity.min_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMaxWar(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
 
 	if (param == NULL
-			|| (float) strtoul(param, NULL, 10)
-					<= system_config->humidity.min_warning
-			|| (float) strtoul(param, NULL, 10)
-					>= system_config->humidity.max_error) {
+			|| strtof(param, NULL)
+					<= env_monitor->system_config.humidity.min_warning
+			|| strtof(param, NULL)
+					>= env_monitor->system_config.humidity.max_error) {
 		return HAL_ERROR;
 	}
 
-	system_config->humidity.max_warning = (float) strtoul(param, NULL, 10);
+	env_monitor->system_config.humidity.max_warning = strtof(param,
+	NULL);
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetInverseDisplay(char *param,
-		volatile SystemConfig_t *system_config) {
-	return HAL_OK;
+		Env_Monitor_HandleTypeDef *env_monitor) {
+
+	if (param == NULL) {
+		return HAL_ERROR;
+	}
+
+	if (strcmp(param, "ON\r\n") == 0) {
+		return SSD1306_InvertDisplay(&env_monitor->ssd,
+				SSD1306_INVERSE_DISPLAY_ON);
+	} else if (strcmp(param, "OFF\r\n") == 0) {
+		return SSD1306_InvertDisplay(&env_monitor->ssd,
+				SSD1306_INVERSE_DISPLAY_OFF);
+	} else {
+		return HAL_ERROR;
+	}
 }
 
 HAL_StatusTypeDef SetInterval(char *param,
-		volatile SystemConfig_t *system_config) {
+		Env_Monitor_HandleTypeDef *env_monitor) {
+
+	if (param == NULL || strtof(param, NULL) <= 2) {
+		return HAL_ERROR;
+	}
+
+	env_monitor->system_config.measurement_interval_s = (uint8_t) strtof(param,
+	NULL);
+
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef SetOsrs(char *param, volatile SystemConfig_t *system_config) {
-	return HAL_OK;
+HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor) {
+
+	if (param == NULL) {
+		return HAL_ERROR;
+	}
+
+	switch ((uint8_t) strtof(param, NULL)) {
+	case 0:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_SKIPPED);
+		return HAL_OK;
+		break;
+	case 1:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X1);
+		return HAL_OK;
+		break;
+	case 2:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X2);
+		return HAL_OK;
+		break;
+	case 4:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X4);
+		return HAL_OK;
+		break;
+	case 8:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X8);
+		return HAL_OK;
+		break;
+	case 16:
+		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X16);
+		return HAL_OK;
+		break;
+
+	default:
+		return HAL_ERROR;
+	}
+
 }
 
 HAL_StatusTypeDef SetContrast(char *param,
-		volatile SystemConfig_t *system_config) {
-	return HAL_OK;
+		Env_Monitor_HandleTypeDef *env_monitor) {
+
+	if (param == NULL || strtof(param, NULL) > 100) {
+		return HAL_ERROR;
+	}
+
+	if(SSD1306_SetContrast(&env_monitor->ssd, (uint8_t) strtof(param, NULL)) == HAL_OK){
+		return HAL_OK;
+	}else{
+		return HAL_ERROR;
+	}
+
 }
 
 Command_t command_table[] = {
@@ -327,15 +402,15 @@ ParseCommand_t ParseCommand() {
 	return result;
 }
 
-void ExecudeCommand(volatile SystemConfig_t *system_config) {
-	command_status = parsed.command->handler(parsed.param, system_config);
+void ExecudeCommand(Env_Monitor_HandleTypeDef *env_monitor) {
+	command_status = parsed.command->handler(parsed.param, env_monitor);
 }
 
 void UART_Task(volatile uint8_t *rx_command_ready,
-		volatile SystemConfig_t *system_config, UART_HandleTypeDef *huart) {
+		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart) {
 	BuildCommand();
 	parsed = ParseCommand();
-	ExecudeCommand(system_config);
+	ExecudeCommand(env_monitor);
 
 	UART_SendMessage(huart);
 	*rx_command_ready = 0;
