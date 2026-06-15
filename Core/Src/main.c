@@ -174,7 +174,7 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		if (rx_command_ready == 1) {
-			UART_Task(&rx_command_ready, &env_monitor, &huart2);
+			UART_Task(&rx_command_ready, &env_monitor, &huart2, &tx_busy);
 
 		}
 

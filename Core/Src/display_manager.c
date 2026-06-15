@@ -45,6 +45,7 @@ void UpdateDisplayStatus() {
 			|| measurement_status.pressure_status == DISPLAY_WARNING
 			|| measurement_status.humidity_status == DISPLAY_WARNING) {
 		display_status = DISPLAY_WARNING;
+		measurement_status.error_flag = 0;
 
 	} else {
 		display_status = DISPLAY_NORMAL;
@@ -73,6 +74,11 @@ void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 }
 
 void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
+	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
+			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
+			SSD1306_COLOR_BLACK);
+	SSD1306_UpdateScreen(ssd);
+
 	switch (display_status) {
 	case DISPLAY_NORMAL:
 		snprintf(text_buffer, sizeof(text_buffer), "NORMAL");
@@ -166,6 +172,12 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 
 		PrintStatement(ssd, 4);
 		SSD1306_UpdateScreen(ssd);
+	} else if (measurement_status.error_flag == 0) {
+		SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
+				2 * SSD1306_LINE_HIGHT);
+		SSD1306_FillRectangle(ssd, 0, 4 * SSD1306_LINE_HIGHT,
+		SSD1306_WIDTH - 1, 2 * SSD1306_LINE_HIGHT, SSD1306_COLOR_BLACK);
+		SSD1306_UpdateScreen(ssd);
 	}
 
 	return HAL_OK;
@@ -207,43 +219,4 @@ HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
 	return HAL_OK;
 }
 
-//HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
-//		SensorData_t *sensor_data) {
-//
-//	uint8_t blink_on = ((HAL_GetTick()) / 1000) % 2;
-//
-//	if (measurement_status.temperature_status == DISPLAY_ERROR) {
-//		if (blink_on) {
-//
-//			SSD1306_FillRectangle(ssd, X_OFFSET, 0 * SSD1306_LINE_HIGHT,
-//					(SSD1306_WIDTH - X_OFFSET), SSD1306_FONT_HEIGHT,
-//					SSD1306_COLOR_BLACK);
-//		} else {
-//			PrintMeasurement(ssd, 0, &sensor_data->temperature);
-//		}
-//	}
-//	if (measurement_status.pressure_status == DISPLAY_ERROR) {
-//		if (blink_on) {
-//			SSD1306_FillRectangle(ssd, X_OFFSET, 1 * SSD1306_LINE_HIGHT,
-//					(SSD1306_WIDTH - X_OFFSET), SSD1306_FONT_HEIGHT,
-//					SSD1306_COLOR_BLACK);
-//		} else {
-//			PrintMeasurement(ssd, 1, &sensor_data->pressure);
-//		}
-//	}
-//
-//	if (measurement_status.humidity_status == DISPLAY_ERROR) {
-//		if (blink_on) {
-//			SSD1306_FillRectangle(ssd, X_OFFSET, 2 * SSD1306_LINE_HIGHT,
-//					(SSD1306_WIDTH - X_OFFSET), SSD1306_FONT_HEIGHT,
-//					SSD1306_COLOR_BLACK);
-//		} else {
-//			PrintMeasurement(ssd, 2, &sensor_data->humidity);
-//		}
-//	}
-//
-//	SSD1306_UpdateScreen(ssd);
-//
-//	return HAL_OK;
-//
-//}
+

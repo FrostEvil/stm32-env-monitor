@@ -10,6 +10,7 @@
 
 #include "stm32f4xx_hal.h"
 #include "system_config.h"
+#include "main.h"
 
 #define RX_RING_BUFFER_SIZE 64
 #define RX_COMMAND_BUFFER_SIZE 64
@@ -20,7 +21,7 @@
 typedef struct {
 	const char *command_name;
 	HAL_StatusTypeDef (*handler)(char *param,
-			volatile SystemConfig_t *system_config);
+			Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param);
 } Command_t;
 
 typedef struct {
@@ -30,6 +31,6 @@ typedef struct {
 
 void UART_ProcessRxData( uint8_t *rx_data, volatile uint8_t *rx_command_ready);
 void UART_Task(volatile uint8_t *rx_command_ready,
-		volatile SystemConfig_t *system_config, UART_HandleTypeDef *huart);; //void UART_SendMessage(UART_HandleTypeDef *huart);
+		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart, uint8_t *tx_busy); //void UART_SendMessage(UART_HandleTypeDef *huart);
 
 #endif /* INC_UART_PROTOCOL_H_ */

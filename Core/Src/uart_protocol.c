@@ -24,219 +24,204 @@ uint8_t rx_data_overflow = 0;
 uint8_t rx_command_overflow = 0;
 
 ParseCommand_t parsed;
-HAL_StatusTypeDef command_status;
 
 HAL_StatusTypeDef SetTempMinErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					>= env_monitor->system_config.temperature.min_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.temperature.min_error = strtof(param,
-	NULL);
+	env_monitor->system_config.temperature.min_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMaxErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					<= env_monitor->system_config.temperature.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.temperature.max_error = strtof(param,
-	NULL);
+	env_monitor->system_config.temperature.max_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMinWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
-					<= env_monitor->system_config.temperature.min_error
-			|| strtof(param, NULL)
+			|| *parsed_param <= env_monitor->system_config.temperature.min_error
+			|| *parsed_param
 					>= env_monitor->system_config.temperature.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.temperature.min_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.temperature.min_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetTempMaxWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					<= env_monitor->system_config.temperature.min_warning
-			|| strtof(param, NULL)
+			|| *parsed_param
 					>= env_monitor->system_config.temperature.max_error) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.temperature.max_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.temperature.max_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMinErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					>= env_monitor->system_config.pressure.min_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.pressure.min_error = strtof(param, NULL);
+	env_monitor->system_config.pressure.min_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMaxErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					<= env_monitor->system_config.pressure.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.pressure.max_error = strtof(param, NULL);
+	env_monitor->system_config.pressure.max_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMinWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
-					<= env_monitor->system_config.pressure.min_error
-			|| strtof(param, NULL)
+			|| *parsed_param <= env_monitor->system_config.pressure.min_error
+			|| *parsed_param
 					>= env_monitor->system_config.pressure.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.pressure.min_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.pressure.min_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetPressMaxWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
-					<= env_monitor->system_config.pressure.min_warning
-			|| strtof(param, NULL)
-					>= env_monitor->system_config.pressure.max_error) {
+			|| *parsed_param <= env_monitor->system_config.pressure.min_warning
+			|| *parsed_param >= env_monitor->system_config.pressure.max_error) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.pressure.max_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.pressure.max_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMinErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					>= env_monitor->system_config.humidity.min_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.humidity.min_error = strtof(param, NULL);
+	env_monitor->system_config.humidity.min_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMaxErr(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
+			|| *parsed_param
 					<= env_monitor->system_config.humidity.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.humidity.max_error = strtof(param, NULL);
+	env_monitor->system_config.humidity.max_error = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMinWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
-					<= env_monitor->system_config.humidity.min_error
-			|| strtof(param, NULL)
+			|| *parsed_param <= env_monitor->system_config.humidity.min_error
+			|| *parsed_param
 					>= env_monitor->system_config.humidity.max_warning) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.humidity.min_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.humidity.min_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetHumMaxWar(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
-			|| strtof(param, NULL)
-					<= env_monitor->system_config.humidity.min_warning
-			|| strtof(param, NULL)
-					>= env_monitor->system_config.humidity.max_error) {
+			|| *parsed_param <= env_monitor->system_config.humidity.min_warning
+			|| *parsed_param >= env_monitor->system_config.humidity.max_error) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.humidity.max_warning = strtof(param,
-	NULL);
+	env_monitor->system_config.humidity.max_warning = *parsed_param;
 
 	return HAL_OK;
 
 }
 
 HAL_StatusTypeDef SetInverseDisplay(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
+	(void) parsed_param;
 
 	if (param == NULL) {
 		return HAL_ERROR;
 	}
 
-	if (strcmp(param, "ON\r\n") == 0) {
+	if (strcmp(param, "ON") == 0) {
 		return SSD1306_InvertDisplay(&env_monitor->ssd,
 				SSD1306_INVERSE_DISPLAY_ON);
-	} else if (strcmp(param, "OFF\r\n") == 0) {
+	} else if (strcmp(param, "OFF") == 0) {
 		return SSD1306_InvertDisplay(&env_monitor->ssd,
 				SSD1306_INVERSE_DISPLAY_OFF);
 	} else {
@@ -245,48 +230,43 @@ HAL_StatusTypeDef SetInverseDisplay(char *param,
 }
 
 HAL_StatusTypeDef SetInterval(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
-	if (param == NULL || strtof(param, NULL) <= 2) {
+	if (param == NULL || *parsed_param <= 2) {
 		return HAL_ERROR;
 	}
 
-	env_monitor->system_config.measurement_interval_s = (uint8_t) strtof(param,
-	NULL);
+	env_monitor->system_config.measurement_interval_s =
+			(uint32_t) *parsed_param;
 
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor) {
+HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor,
+		float *parsed_param) {
 
 	if (param == NULL) {
 		return HAL_ERROR;
 	}
 
-	switch ((uint8_t) strtof(param, NULL)) {
+	switch ((uint8_t) *parsed_param) {
 	case 0:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_SKIPPED);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_SKIPPED);
 		break;
 	case 1:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X1);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X1);
 		break;
 	case 2:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X2);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X2);
 		break;
 	case 4:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X4);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X4);
 		break;
 	case 8:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X8);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X8);
 		break;
 	case 16:
-		BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X16);
-		return HAL_OK;
+		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X16);
 		break;
 
 	default:
@@ -296,15 +276,16 @@ HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor) {
 }
 
 HAL_StatusTypeDef SetContrast(char *param,
-		Env_Monitor_HandleTypeDef *env_monitor) {
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
-	if (param == NULL || strtof(param, NULL) > 100) {
+	if (param == NULL || *parsed_param > 100) {
 		return HAL_ERROR;
 	}
 
-	if(SSD1306_SetContrast(&env_monitor->ssd, (uint8_t) strtof(param, NULL)) == HAL_OK){
+	if (SSD1306_SetContrast(&env_monitor->ssd, (uint8_t) *parsed_param)
+			== HAL_OK) {
 		return HAL_OK;
-	}else{
+	} else {
 		return HAL_ERROR;
 	}
 
@@ -330,11 +311,26 @@ Command_t command_table[] = {
 				"CMD:SET_INVERSE_DISPLAY:", SetInverseDisplay }, {
 				"CMD:SET_CONTRAST:", SetContrast } };
 
-void UART_SendMessage(UART_HandleTypeDef *huart) {
-	if (command_status == HAL_OK) {
-		HAL_UART_Transmit_IT(huart, (uint8_t*) "ACK\r\n", strlen("ACK\r\n"));
+void UART_SendMessage(UART_HandleTypeDef *huart,
+		HAL_StatusTypeDef *command_status, uint8_t *tx_busy) {
+	if (parsed.command == NULL) {
+		if (*tx_busy == 0) {
+			HAL_UART_Transmit_IT(huart, (uint8_t*) "UNKNOWN COMMAND\r\n",
+					strlen("UNKNOWN COMMAND\r\n"));
+		}
+		return;
+	}
+
+	if (*command_status == HAL_OK) {
+		if (*tx_busy == 0) {
+			HAL_UART_Transmit_IT(huart, (uint8_t*) "ACK\r\n",
+					strlen("ACK\r\n"));
+		}
 	} else {
-		HAL_UART_Transmit_IT(huart, (uint8_t*) "ERR\r\n", strlen("ERR\r\n"));
+		if (*tx_busy == 0) {
+			HAL_UART_Transmit_IT(huart, (uint8_t*) "ERR\r\n",
+					strlen("ERR\r\n"));
+		}
 	}
 }
 
@@ -353,37 +349,44 @@ void UART_ProcessRxData(uint8_t *rx_data, volatile uint8_t *rx_command_ready) {
 		}
 
 	} else {
-		//TODO: Add rx_data_overflow handling
+		rx_head = 0;
+		rx_tail = 0;
+		*rx_command_ready = 1;
+		rx_data_overflow = 0;
 	}
 
 }
 
 void BuildCommand() {
-	if (rx_head == rx_tail) {
-		return;
-	} // Is it neccessary?
-
-	if (command_index >= RX_COMMAND_BUFFER_SIZE - 1) {
-		rx_command_overflow = 1;
-	} // Is it neccessary when command_index is increasing in while loop? and ParseCommand is executed
-//i know that somewhere is '\n' and olso rx_command_buffer and rx_data_buffer has the same size
-
 	if (rx_command_overflow != 1) {
 
 		while (rx_data_buffer[rx_tail] != '\n') {
-			rx_command_buffer[command_index] = rx_data_buffer[rx_tail];
+
+			if (rx_head == rx_tail
+					|| command_index >= (RX_COMMAND_BUFFER_SIZE - 1)) {
+				rx_command_overflow = 1;
+				break;
+			}
+
+			if (rx_data_buffer[rx_tail] != '\r') {
+				rx_command_buffer[command_index] = rx_data_buffer[rx_tail];
+				command_index++;
+			}
 			rx_tail = (rx_tail + 1) % RX_RING_BUFFER_SIZE;
-			command_index++;
+
 		}
-		rx_command_buffer[command_index] = '\n';
-		command_index++;
+
 		rx_tail = (rx_tail + 1) % RX_RING_BUFFER_SIZE;
 		rx_command_buffer[command_index] = '\0';
 
 		command_index = 0;
 
 	} else {
-		//TODO: ADD rx_command_overflow HANDLING
+		rx_head = 0;
+		rx_tail = 0;
+		command_index = 0;
+		rx_command_buffer[command_index] = '\0';
+		rx_command_overflow = 0;
 	}
 }
 
@@ -402,16 +405,28 @@ ParseCommand_t ParseCommand() {
 	return result;
 }
 
-void ExecudeCommand(Env_Monitor_HandleTypeDef *env_monitor) {
-	command_status = parsed.command->handler(parsed.param, env_monitor);
+void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param,
+		HAL_StatusTypeDef *command_status) {
+	*command_status = parsed.command->handler(parsed.param, env_monitor,
+			parsed_param);
 }
 
 void UART_Task(volatile uint8_t *rx_command_ready,
-		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart) {
+		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart,
+		uint8_t *tx_busy) {
+	float parsed_param = 0;
+	HAL_StatusTypeDef command_status = HAL_ERROR;
+
 	BuildCommand();
 	parsed = ParseCommand();
-	ExecudeCommand(env_monitor);
+	if (parsed.command == NULL) {
+		UART_SendMessage(huart, &command_status, tx_busy);
+	} else {
+		parsed_param = strtof(parsed.param, NULL);
 
-	UART_SendMessage(huart);
+		ExecuteCommand(env_monitor, &parsed_param, &command_status);
+		UART_SendMessage(huart, &command_status, tx_busy);
+	}
+
 	*rx_command_ready = 0;
 }
