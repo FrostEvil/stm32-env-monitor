@@ -22,7 +22,7 @@ AlarmStatus_t UpdateSingleAlarmState(float value, volatile Thresholds_t *limits,
 		}
 		return ALARM_NORMAL;
 
-	case ALARM_NORMAL:
+	case ALARM_WARNING:
 		if (value >= limits->max_error || value <= limits->min_error) {
 			return ALARM_ERROR;
 		}

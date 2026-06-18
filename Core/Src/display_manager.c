@@ -42,7 +42,7 @@ void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
 			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
 			SSD1306_COLOR_BLACK);
-	SSD1306_UpdateScreen(ssd);
+//	SSD1306_UpdateScreen(ssd);
 
 	switch (overall_status) {
 	case ALARM_ERROR:
