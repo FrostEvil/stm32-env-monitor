@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "uart_protocol.h"
+#include "alarm.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -118,6 +119,8 @@ int main(void) {
 	HAL_TIM_Base_Start_IT(&htim10);
 	HAL_UART_Receive_IT(&huart2, &rx_data, 1);
 
+	AlarmState_t alarm_state = { ALARM_NORMAL };
+
 	env_monitor.bme.hi2c = &hi2c1;
 	env_monitor.bme.address = BME280_I2C_ADDR_LOW;
 	env_monitor.bme.mode = BME280_SLEEP_MODE;
@@ -150,6 +153,7 @@ int main(void) {
 
 	env_monitor.system_config.measurement_interval_s = 5;
 	env_monitor.system_config.display_interval_s = 1;
+	env_monitor.system_config.alarm_hysteresis = 2;
 
 	uint8_t measurement_in_progress = 0;
 
@@ -178,9 +182,10 @@ int main(void) {
 
 		}
 
-		if (first_measurement_flag && display_flag && display_error_flag) {
+		if (first_measurement_flag && display_flag
+				&& alarm_state.overall_status == ALARM_ERROR) {
 			if (DisplayUpdateErrorBlink(&env_monitor.ssd,
-					&env_monitor.sensor_data) == HAL_OK) {
+					&env_monitor.sensor_data, &alarm_state) == HAL_OK) {
 				display_flag = 0;
 			}
 
@@ -204,11 +209,14 @@ int main(void) {
 						&env_monitor.sensor_data.temperature,
 						&env_monitor.sensor_data.pressure,
 						&env_monitor.sensor_data.humidity) == HAL_OK) {
+
 					first_measurement_flag = 1;
 
+					UpdateAlarmState(&env_monitor.system_config,
+							&env_monitor.sensor_data, &alarm_state);
+
 					DisplayMeasurements(&env_monitor.sensor_data,
-							&env_monitor.system_config, &env_monitor.ssd,
-							&display_error_flag);
+							&env_monitor.ssd, &alarm_state);
 
 					env_monitor.sensor_data.timestamp_ms = HAL_GetTick();
 					snprintf(tx_sensor_data_buffer,

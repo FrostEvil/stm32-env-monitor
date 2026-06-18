@@ -11,47 +11,11 @@
 #include <stdio.h>
 #include <string.h>
 #include "display_manager.h"
+#include "alarm.h"
 
 char text_buffer[64];
-
-MeasurementStatus_t measurement_status = { .temperature_status = DISPLAY_NORMAL,
-		.pressure_status = DISPLAY_NORMAL, .humidity_status = DISPLAY_NORMAL,
-		.error_flag = 0 };
-
-DisplayStatus_t display_status = DISPLAY_NORMAL;
-
-void UpdateMeasurementStatus(float measurement,
-		volatile const Thresholds_t *thresholds, DisplayStatus_t *status) {
-	if (measurement <= thresholds->min_error
-			|| measurement >= thresholds->max_error) {
-		*status = DISPLAY_ERROR;
-
-	} else if (measurement <= thresholds->min_warning
-			|| measurement >= thresholds->max_warning) {
-		*status = DISPLAY_WARNING;
-	} else {
-		*status = DISPLAY_NORMAL;
-	}
-}
-
-void UpdateDisplayStatus() {
-	if (measurement_status.temperature_status == DISPLAY_ERROR
-			|| measurement_status.pressure_status == DISPLAY_ERROR
-			|| measurement_status.humidity_status == DISPLAY_ERROR) {
-		display_status = DISPLAY_ERROR;
-		measurement_status.error_flag = 1;
-
-	} else if (measurement_status.temperature_status == DISPLAY_WARNING
-			|| measurement_status.pressure_status == DISPLAY_WARNING
-			|| measurement_status.humidity_status == DISPLAY_WARNING) {
-		display_status = DISPLAY_WARNING;
-		measurement_status.error_flag = 0;
-
-	} else {
-		display_status = DISPLAY_NORMAL;
-		measurement_status.error_flag = 0;
-	}
-}
+uint8_t first_status_update = 1;
+AlarmStatus_t prev_overall_status = ALARM_NORMAL;
 
 void PrintStartingScreen(SSD1306_HandleTypeDef *ssd) {
 	char *text_layout[4] =
@@ -73,25 +37,22 @@ void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_Print(ssd, text_buffer);
 }
 
-void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
+void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		AlarmStatus_t overall_status) {
 	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
 			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
 			SSD1306_COLOR_BLACK);
 	SSD1306_UpdateScreen(ssd);
 
-	switch (display_status) {
-	case DISPLAY_NORMAL:
-		snprintf(text_buffer, sizeof(text_buffer), "NORMAL");
-		break;
-	case DISPLAY_ERROR:
+	switch (overall_status) {
+	case ALARM_ERROR:
 		snprintf(text_buffer, sizeof(text_buffer), "ERROR");
 		break;
-	case DISPLAY_WARNING:
+	case ALARM_WARNING:
 		snprintf(text_buffer, sizeof(text_buffer), "WARNING");
 		break;
-	case DISPLAY_INFO:
-		snprintf(text_buffer, sizeof(text_buffer), "INFO");
-		break;
+	default:
+		snprintf(text_buffer, sizeof(text_buffer), "NORMAL");
 	}
 
 	uint8_t y = line * SSD1306_LINE_HIGHT;
@@ -101,21 +62,22 @@ void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
 
 }
 
-HAL_StatusTypeDef PrintStatement(SSD1306_HandleTypeDef *ssd, uint8_t line) {
+HAL_StatusTypeDef PrintStatement(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		AlarmState_t *alarm_state) {
 	snprintf(text_buffer, sizeof(text_buffer), "Statement: ");
 	size_t len = strlen(text_buffer);
 
-	if (measurement_status.temperature_status == DISPLAY_ERROR) {
+	if (alarm_state->temperature_status == ALARM_ERROR) {
 		len = strlen(text_buffer);
 		snprintf(&text_buffer[len], sizeof(text_buffer) - len, "temperature ");
 	}
 
-	if (measurement_status.pressure_status == DISPLAY_ERROR) {
+	if (alarm_state->pressure_status == ALARM_ERROR) {
 		len = strlen(text_buffer);
 		snprintf(&text_buffer[len], sizeof(text_buffer) - len, "pressure ");
 	}
 
-	if (measurement_status.humidity_status == DISPLAY_ERROR) {
+	if (alarm_state->humidity_status == ALARM_ERROR) {
 		len = strlen(text_buffer);
 		snprintf(&text_buffer[len], sizeof(text_buffer) - len, "humidity ");
 
@@ -140,20 +102,7 @@ HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd) {
 }
 
 HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
-		volatile SystemConfig_t *system_config, SSD1306_HandleTypeDef *ssd,
-		uint8_t *error_flag) {
-
-	UpdateMeasurementStatus(sensor_data->temperature,
-			&system_config->temperature,
-			&measurement_status.temperature_status);
-	UpdateMeasurementStatus(sensor_data->pressure, &system_config->pressure,
-			&measurement_status.pressure_status);
-	UpdateMeasurementStatus(sensor_data->humidity, &system_config->humidity,
-			&measurement_status.humidity_status);
-
-	UpdateDisplayStatus();
-
-	*error_flag = measurement_status.error_flag;
+		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error) {
 
 	SSD1306_UpdateArea(ssd, X_OFFSET, 0, (SSD1306_WIDTH - X_OFFSET),
 			4 * SSD1306_LINE_HIGHT);
@@ -162,23 +111,29 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 	PrintMeasurement(ssd, 1, &sensor_data->pressure);
 	PrintMeasurement(ssd, 2, &sensor_data->humidity);
 
-	PrintStatus(ssd, 3);
+	if (first_status_update == 1
+			|| prev_overall_status != alarm_error->overall_status) {
+		PrintStatus(ssd, 3, alarm_error->overall_status);
+		first_status_update = 0;
+	}
 
 	SSD1306_UpdateScreen(ssd);
 
-	if (measurement_status.error_flag == 1) {
+	if (alarm_error->overall_status == ALARM_ERROR) {
 		SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
 				2 * SSD1306_LINE_HIGHT);
 
-		PrintStatement(ssd, 4);
+		PrintStatement(ssd, 4, alarm_error);
 		SSD1306_UpdateScreen(ssd);
-	} else if (measurement_status.error_flag == 0) {
+	} else {
 		SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
 				2 * SSD1306_LINE_HIGHT);
 		SSD1306_FillRectangle(ssd, 0, 4 * SSD1306_LINE_HIGHT,
 		SSD1306_WIDTH - 1, 2 * SSD1306_LINE_HIGHT, SSD1306_COLOR_BLACK);
 		SSD1306_UpdateScreen(ssd);
 	}
+
+	prev_overall_status = alarm_error->overall_status;
 
 	return HAL_OK;
 }
@@ -198,25 +153,24 @@ HAL_StatusTypeDef PrintErrorBlink(SSD1306_HandleTypeDef *ssd, uint8_t line,
 }
 
 HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
-		SensorData_t *sensor_data) {
+		SensorData_t *sensor_data, AlarmState_t *alarm_state) {
 
 	SSD1306_UpdateArea(ssd, X_OFFSET, 0, (SSD1306_WIDTH - X_OFFSET),
 			3 * SSD1306_LINE_HIGHT);
 
 	uint8_t blink_on = ((HAL_GetTick()) / 1000) % 2;
 
-	if (measurement_status.temperature_status == DISPLAY_ERROR) {
+	if (alarm_state->temperature_status == ALARM_ERROR) {
 		PrintErrorBlink(ssd, 0, &sensor_data->temperature, &blink_on);
 	}
-	if (measurement_status.pressure_status == DISPLAY_ERROR) {
+	if (alarm_state->pressure_status == ALARM_ERROR) {
 		PrintErrorBlink(ssd, 1, &sensor_data->pressure, &blink_on);
 	}
 
-	if (measurement_status.humidity_status == DISPLAY_ERROR) {
+	if (alarm_state->humidity_status == ALARM_ERROR) {
 		PrintErrorBlink(ssd, 2, &sensor_data->humidity, &blink_on);
 	}
 	SSD1306_UpdateScreen(ssd);
 	return HAL_OK;
 }
-
 

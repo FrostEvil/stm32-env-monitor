@@ -312,7 +312,7 @@ Command_t command_table[] = {
 				"CMD:SET_CONTRAST:", SetContrast } };
 
 void UART_SendMessage(UART_HandleTypeDef *huart,
-		HAL_StatusTypeDef *command_status, uint8_t *tx_busy) {
+		HAL_StatusTypeDef *command_status, volatile uint8_t *tx_busy) {
 	if (parsed.command == NULL) {
 		if (*tx_busy == 0) {
 			HAL_UART_Transmit_IT(huart, (uint8_t*) "UNKNOWN COMMAND\r\n",
@@ -413,7 +413,7 @@ void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param,
 
 void UART_Task(volatile uint8_t *rx_command_ready,
 		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart,
-		uint8_t *tx_busy) {
+		volatile uint8_t *tx_busy) {
 	float parsed_param = 0;
 	HAL_StatusTypeDef command_status = HAL_ERROR;
 
