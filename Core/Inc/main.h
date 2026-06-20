@@ -83,6 +83,14 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define Buzzer_Pin GPIO_PIN_9
+#define Buzzer_GPIO_Port GPIOA
+#define Green_LED_Pin GPIO_PIN_10
+#define Green_LED_GPIO_Port GPIOA
+#define Yellow_LED_Pin GPIO_PIN_11
+#define Yellow_LED_GPIO_Port GPIOA
+#define Red_LED_Pin GPIO_PIN_12
+#define Red_LED_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
