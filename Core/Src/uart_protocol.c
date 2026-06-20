@@ -291,6 +291,41 @@ HAL_StatusTypeDef SetContrast(char *param,
 
 }
 
+HAL_StatusTypeDef SetHysteresis(char *param,
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
+	if (param == NULL || *parsed_param <= 0 || *parsed_param > 5) {
+		return HAL_ERROR;
+	}
+
+	if (*parsed_param
+			>= (env_monitor->system_config.temperature.max_error
+					- env_monitor->system_config.temperature.min_error) / 2
+			|| *parsed_param
+					>= (env_monitor->system_config.temperature.max_warning
+							- env_monitor->system_config.temperature.min_warning)
+							/ 2
+			|| *parsed_param
+					>= (env_monitor->system_config.pressure.max_error
+							- env_monitor->system_config.pressure.min_error) / 2
+			|| *parsed_param
+					>= (env_monitor->system_config.pressure.max_warning
+							- env_monitor->system_config.pressure.min_warning)
+							/ 2
+			|| *parsed_param
+					>= (env_monitor->system_config.humidity.max_error
+							- env_monitor->system_config.humidity.min_error) / 2
+			|| *parsed_param
+					>= (env_monitor->system_config.humidity.max_warning
+							- env_monitor->system_config.humidity.min_warning)
+							/ 2) {
+		return HAL_ERROR;
+	}
+
+	env_monitor->system_config.alarm_hysteresis = *parsed_param;
+
+	return HAL_OK;
+}
+
 Command_t command_table[] = {
 		{ "CMD:SET_TEMPERATURE_MIN_ERROR:", SetTempMinErr }, {
 				"CMD:SET_TEMPERATURE_MAX_ERROR:", SetTempMaxErr }, {
@@ -309,10 +344,11 @@ Command_t command_table[] = {
 
 		{ "CMD:SET_INTERVAL:", SetInterval }, { "CMD:SET_OSRS:", SetOsrs }, {
 				"CMD:SET_INVERSE_DISPLAY:", SetInverseDisplay }, {
-				"CMD:SET_CONTRAST:", SetContrast } };
+				"CMD:SET_CONTRAST:", SetContrast }, { "CMD:SET_HYSTERESIS:",
+				SetHysteresis } };
 
 void UART_SendMessage(UART_HandleTypeDef *huart,
-		HAL_StatusTypeDef *command_status, uint8_t *tx_busy) {
+		HAL_StatusTypeDef *command_status, volatile uint8_t *tx_busy) {
 	if (parsed.command == NULL) {
 		if (*tx_busy == 0) {
 			HAL_UART_Transmit_IT(huart, (uint8_t*) "UNKNOWN COMMAND\r\n",
@@ -413,7 +449,7 @@ void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param,
 
 void UART_Task(volatile uint8_t *rx_command_ready,
 		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart,
-		uint8_t *tx_busy) {
+		volatile uint8_t *tx_busy) {
 	float parsed_param = 0;
 	HAL_StatusTypeDef command_status = HAL_ERROR;
 

@@ -29,8 +29,9 @@ typedef struct {
 	char *param;
 } ParseCommand_t;
 
-void UART_ProcessRxData( uint8_t *rx_data, volatile uint8_t *rx_command_ready);
+void UART_ProcessRxData(uint8_t *rx_data, volatile uint8_t *rx_command_ready);
 void UART_Task(volatile uint8_t *rx_command_ready,
-		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart, uint8_t *tx_busy); //void UART_SendMessage(UART_HandleTypeDef *huart);
+		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart,
+		volatile uint8_t *tx_busy); //void UART_SendMessage(UART_HandleTypeDef *huart);
 
 #endif /* INC_UART_PROTOCOL_H_ */

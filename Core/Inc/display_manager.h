@@ -8,6 +8,8 @@
 #ifndef INC_DISPLAY_MANAGER_H_
 #define INC_DISPLAY_MANAGER_H_
 
+#include "alarm.h"
+
 #define X_OFFSET 80
 
 typedef enum {
@@ -17,17 +19,17 @@ typedef enum {
 	DISPLAY_INFO = 0x03U
 } DisplayStatus_t;
 
- typedef struct {
+typedef struct {
 	DisplayStatus_t temperature_status;
 	DisplayStatus_t pressure_status;
 	DisplayStatus_t humidity_status;
 	uint8_t error_flag;
 } MeasurementStatus_t;
 
-
 HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd);
 HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
-		volatile SystemConfig_t *system_config, SSD1306_HandleTypeDef *ssd, uint8_t *error_flag);
-HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd, SensorData_t *sensor_data);
+		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error);
+HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
+		SensorData_t *sensor_data, AlarmState_t *alarm_state);
 #endif /* INC_DISPLAY_MANAGER_H_ */
 

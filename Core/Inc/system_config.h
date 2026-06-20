@@ -21,6 +21,7 @@ typedef struct {
 	Thresholds_t humidity;
 	uint32_t measurement_interval_s;
 	uint8_t display_interval_s;
+	float alarm_hysteresis;
 } SystemConfig_t;
 
 #endif /* INC_SYSTEM_CONFIG_H_ */
