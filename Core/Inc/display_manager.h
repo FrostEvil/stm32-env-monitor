@@ -10,26 +10,17 @@
 
 #include "alarm.h"
 
-#define X_OFFSET 80
-
-typedef enum {
-	DISPLAY_NORMAL = 0x00U,
-	DISPLAY_ERROR = 0x01U,
-	DISPLAY_WARNING = 0x02U,
-	DISPLAY_INFO = 0x03U
-} DisplayStatus_t;
-
-typedef struct {
-	DisplayStatus_t temperature_status;
-	DisplayStatus_t pressure_status;
-	DisplayStatus_t humidity_status;
-	uint8_t error_flag;
-} MeasurementStatus_t;
-
 HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd);
 HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
-		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error);
+		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error,
+		uint8_t config_changed);
 HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
 		SensorData_t *sensor_data, AlarmState_t *alarm_state);
+HAL_StatusTypeDef DisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		ChangedParam_t changed_param);
+HAL_StatusTypeDef DisplaySettings(SSD1306_HandleTypeDef *ssd,
+		volatile SystemConfig_t *system_config);
+HAL_StatusTypeDef HideDisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		AlarmStatus_t overall_status);
 #endif /* INC_DISPLAY_MANAGER_H_ */
 
