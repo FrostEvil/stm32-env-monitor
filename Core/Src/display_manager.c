@@ -13,6 +13,8 @@
 #include "display_manager.h"
 #include "alarm.h"
 
+#define X_OFFSET 80
+
 char text_buffer[64];
 
 void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
