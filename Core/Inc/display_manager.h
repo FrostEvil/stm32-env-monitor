@@ -8,6 +8,8 @@
 #ifndef INC_DISPLAY_MANAGER_H_
 #define INC_DISPLAY_MANAGER_H_
 
+#include "ssd1306.h"
+#include "main.h"
 #include "alarm.h"
 
 HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd);

@@ -10,7 +10,6 @@
 
 #include "main.h"
 #include "system_config.h"
-#include "button.h"
 
 typedef enum {
 	ALARM_NORMAL = 0x00U, ALARM_WARNING = 0x01U, ALARM_ERROR = 0x02U
@@ -26,5 +25,5 @@ typedef struct {
 void UpdateAlarmState(volatile SystemConfig_t *system_config,
 		SensorData_t *sensor_data, AlarmState_t *alarm_state);
 void UpdateAlarmIndicators(AlarmStatus_t overall_status);
-void BuzzerOff();
+void BuzzerOff(void);
 #endif /* INC_ALARM_H_ */

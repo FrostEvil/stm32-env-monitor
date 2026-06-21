@@ -6,7 +6,7 @@
  */
 
 #include "alarm.h"
-#include "system_config.h"
+
 
 uint8_t buzzer_on_flag = 1;
 
