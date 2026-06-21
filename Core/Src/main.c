@@ -76,6 +76,9 @@ volatile uint8_t time_counter = 0;
 volatile uint8_t display_flag = 0;
 volatile uint8_t display_time_counter = 0;
 
+volatile uint8_t display_settings_time_counter = 0;
+volatile uint8_t update_settings_display = 0;
+
 char tx_sensor_data_buffer[64];
 uint8_t first_measurement_flag = 0;
 volatile uint8_t tx_busy = 0;
@@ -163,6 +166,7 @@ int main(void) {
 	uint8_t measurement_in_progress = 0;
 	uint8_t config_changed = 0;
 	uint8_t settings_showed = 0;
+	uint8_t display_info_showed = 0;
 
 	if (BME280_Init(&env_monitor.bme) != HAL_OK) {
 		// TODO: add error handling later.
@@ -185,11 +189,13 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		if (Button_IsPressed(&app_buttons.buzzer_mute_btn)) {
-			BuzzerOff(app_buttons.buzzer_mute_btn.button_pressed);
+			BuzzerOff();
 		}
 
 		if (Button_IsPressed(&app_buttons.config_ack_btn)) {
 			config_changed = 0;
+			display_info_showed = 0;
+			HideDisplayInfo(&env_monitor.ssd, 3, alarm_state.overall_status);
 		}
 
 		if (Button_IsPressed(&app_buttons.settings_view_btn)) {
@@ -201,11 +207,14 @@ int main(void) {
 			DisplayStartingScreen(&env_monitor.ssd);
 		}
 
-		if (config_changed == 1) {
+		if (config_changed == 1 && display_info_showed == 0) {
 			DisplayInfo(&env_monitor.ssd, 3, changed_param);
+			display_info_showed = 1;
 		}
-		if (settings_showed == 1) {
+
+		if (settings_showed == 1 && update_settings_display == 1) {
 			DisplaySettings(&env_monitor.ssd, &env_monitor.system_config);
+			update_settings_display = 0;
 		}
 
 		if (rx_command_ready == 1) {
@@ -215,7 +224,8 @@ int main(void) {
 		}
 
 		if (first_measurement_flag && display_flag
-				&& alarm_state.overall_status == ALARM_ERROR) {
+				&& alarm_state.overall_status == ALARM_ERROR
+				&& settings_showed == 0) {
 			if (DisplayUpdateErrorBlink(&env_monitor.ssd,
 					&env_monitor.sensor_data, &alarm_state) == HAL_OK) {
 				display_flag = 0;
@@ -278,7 +288,6 @@ int main(void) {
 
 			}
 		}
-
 	}
 
 	/* USER CODE END 3 */
@@ -334,6 +343,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 		time_counter++;
 		display_time_counter++;
+		display_settings_time_counter++;
 
 		if (time_counter >= env_monitor.system_config.measurement_interval_s) {
 			measurement_flag = 1;
@@ -344,6 +354,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 				>= env_monitor.system_config.display_interval_s) {
 			display_flag = 1;
 			display_time_counter = 0;
+		}
+
+		if (display_settings_time_counter >= 3) {
+			update_settings_display = 1;
+			display_settings_time_counter = 0;
 		}
 	}
 

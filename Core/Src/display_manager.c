@@ -14,9 +14,6 @@
 #include "alarm.h"
 
 char text_buffer[64];
-uint8_t first_status_update = 1;
-AlarmStatus_t prev_overall_status = ALARM_NORMAL;
-uint8_t prev_config_changed = 0;
 
 void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
 		uint8_t height) {
@@ -220,19 +217,8 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 	PrintMeasurement(ssd, 2, &sensor_data->humidity);
 
 	if (config_changed == 0) {
-		if (first_status_update == 1
-				|| prev_overall_status != alarm_error->overall_status) {
 
-			PrintStatus(ssd, 3, alarm_error->overall_status);
-
-			first_status_update = 0;
-		}
-
-		if (config_changed != prev_config_changed) {
-			PrintStatus(ssd, 3, alarm_error->overall_status);
-		}
-
-		SSD1306_UpdateScreen(ssd);
+		PrintStatus(ssd, 3, alarm_error->overall_status);
 
 		if (alarm_error->overall_status == ALARM_ERROR) {
 			SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
@@ -248,10 +234,8 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 			SSD1306_UpdateScreen(ssd);
 		}
 
-		prev_overall_status = alarm_error->overall_status;
 	}
-
-	prev_config_changed = config_changed;
+	SSD1306_UpdateScreen(ssd);
 
 	return HAL_OK;
 }
@@ -266,6 +250,21 @@ HAL_StatusTypeDef DisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_UpdateScreen(ssd);
 
 	PrintChangedParam(ssd, line + 1, changed_param);
+	SSD1306_UpdateScreen(ssd);
+
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef HideDisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		AlarmStatus_t overall_status) {
+	SSD1306_UpdateArea(ssd, 0, line * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
+	SSD1306_HEIGHT);
+	PrintStatus(ssd, 3, overall_status);
+
+//	SSD1306_UpdateArea(ssd, 0, (line + 1) * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
+//			2 * SSD1306_LINE_HIGHT);
+	ClearArea(ssd, 0, (line + 1) * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
+			2 * SSD1306_LINE_HIGHT);
 	SSD1306_UpdateScreen(ssd);
 
 	return HAL_OK;

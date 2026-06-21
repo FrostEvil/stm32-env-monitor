@@ -103,7 +103,7 @@ void UpdateAlarmIndicators(AlarmStatus_t overall_status) {
 	}
 }
 
-void BuzzerOff(GPIO_PinState buzzer_mute_btn_state) {
+void BuzzerOff() {
 
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 	buzzer_on_flag = 0;
