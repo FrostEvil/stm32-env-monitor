@@ -16,6 +16,13 @@
 char text_buffer[64];
 uint8_t first_status_update = 1;
 AlarmStatus_t prev_overall_status = ALARM_NORMAL;
+uint8_t prev_config_changed = 0;
+
+void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
+		uint8_t height) {
+	SSD1306_FillRectangle(ssd, x, y, width, height, SSD1306_COLOR_BLACK);
+
+}
 
 void PrintStartingScreen(SSD1306_HandleTypeDef *ssd) {
 	char *text_layout[4] =
@@ -39,10 +46,9 @@ void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 
 void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		AlarmStatus_t overall_status) {
-	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
-			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
-			SSD1306_COLOR_BLACK);
-//	SSD1306_UpdateScreen(ssd);
+
+	ClearArea(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
+			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT);
 
 	switch (overall_status) {
 	case ALARM_ERROR:
@@ -62,8 +68,109 @@ void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
 
 }
 
+void PrintInfoStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
+	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
+			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
+			SSD1306_COLOR_BLACK);
+
+	snprintf(text_buffer, sizeof(text_buffer), "INFO");
+	uint8_t y = line * SSD1306_LINE_HIGHT;
+
+	SSD1306_SetCursor(ssd, X_OFFSET, y);
+	SSD1306_Print(ssd, text_buffer);
+}
+
+void PrintChangedParam(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		ChangedParam_t changed_param) {
+
+	snprintf(text_buffer, sizeof(text_buffer), "Statement: ");
+	size_t len = strlen(text_buffer);
+
+	switch (changed_param) {
+	case PARAM_TEMP_MIN_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_temp_min_error changed! ");
+		break;
+	case PARAM_TEMP_MAX_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_temp_max_error changed! ");
+		break;
+	case PARAM_TEMP_MIN_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_temp_min_warning changed! ");
+		break;
+	case PARAM_TEMP_MAX_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_temp_max_warning changed! ");
+		break;
+
+	case PARAM_PRESS_MIN_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_press_min_error changed! ");
+		break;
+	case PARAM_PRESS_MAX_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_press_max_error changed! ");
+		break;
+	case PARAM_PRESS_MIN_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_press_min_warning changed! ");
+		break;
+	case PARAM_PRESS_MAX_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_press_max_warning changed! ");
+		break;
+
+	case PARAM_HUM_MIN_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_hum_min_error changed! ");
+		break;
+	case PARAM_HUM_MAX_ERROR:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_hum_max_error changed! ");
+		break;
+	case PARAM_HUM_MIN_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_hum_min_warning changed! ");
+		break;
+	case PARAM_HUM_MAX_WARNING:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_hum_max_warning changed! ");
+		break;
+
+	case PARAM_INTERVAL:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_internal changed! ");
+		break;
+	case PARAM_OSRS:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_osrs changed! ");
+		break;
+	case PARAM_INVERSE_DISPLAY:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_inverse_display changed! ");
+		break;
+	case PARAM_CONTRAST:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_contrast changed! ");
+		break;
+	case PARAM_HYSTERESIS:
+		snprintf(&text_buffer[len], sizeof(text_buffer) - len,
+				"param_hysteresis changed! ");
+		break;
+	}
+
+	SSD1306_SetCursor(ssd, 0, line * SSD1306_LINE_HIGHT);
+	SSD1306_Print(ssd, text_buffer);
+}
+
 HAL_StatusTypeDef PrintStatement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		AlarmState_t *alarm_state) {
+
+	ClearArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
+			2 * SSD1306_LINE_HIGHT);
+	SSD1306_UpdateScreen(ssd);
+
 	snprintf(text_buffer, sizeof(text_buffer), "Statement: ");
 	size_t len = strlen(text_buffer);
 
@@ -102,7 +209,8 @@ HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd) {
 }
 
 HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
-		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error) {
+		SSD1306_HandleTypeDef *ssd, AlarmState_t *alarm_error,
+		uint8_t config_changed) {
 
 	SSD1306_UpdateArea(ssd, X_OFFSET, 0, (SSD1306_WIDTH - X_OFFSET),
 			4 * SSD1306_LINE_HIGHT);
@@ -111,29 +219,54 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 	PrintMeasurement(ssd, 1, &sensor_data->pressure);
 	PrintMeasurement(ssd, 2, &sensor_data->humidity);
 
-	if (first_status_update == 1
-			|| prev_overall_status != alarm_error->overall_status) {
-		PrintStatus(ssd, 3, alarm_error->overall_status);
-		first_status_update = 0;
+	if (config_changed == 0) {
+		if (first_status_update == 1
+				|| prev_overall_status != alarm_error->overall_status) {
+
+			PrintStatus(ssd, 3, alarm_error->overall_status);
+
+			first_status_update = 0;
+		}
+
+		if (config_changed != prev_config_changed) {
+			PrintStatus(ssd, 3, alarm_error->overall_status);
+		}
+
+		SSD1306_UpdateScreen(ssd);
+
+		if (alarm_error->overall_status == ALARM_ERROR) {
+			SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
+					2 * SSD1306_LINE_HIGHT);
+
+			PrintStatement(ssd, 4, alarm_error);
+			SSD1306_UpdateScreen(ssd);
+		} else {
+			SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
+					2 * SSD1306_LINE_HIGHT);
+			ClearArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
+					2 * SSD1306_LINE_HIGHT);
+			SSD1306_UpdateScreen(ssd);
+		}
+
+		prev_overall_status = alarm_error->overall_status;
 	}
 
+	prev_config_changed = config_changed;
+
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef DisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
+		ChangedParam_t changed_param) {
+
+	SSD1306_UpdateArea(ssd, 0, line * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
+	SSD1306_HEIGHT);
+
+	PrintInfoStatus(ssd, line);
 	SSD1306_UpdateScreen(ssd);
 
-	if (alarm_error->overall_status == ALARM_ERROR) {
-		SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
-				2 * SSD1306_LINE_HIGHT);
-
-		PrintStatement(ssd, 4, alarm_error);
-		SSD1306_UpdateScreen(ssd);
-	} else {
-		SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
-				2 * SSD1306_LINE_HIGHT);
-		SSD1306_FillRectangle(ssd, 0, 4 * SSD1306_LINE_HIGHT,
-		SSD1306_WIDTH - 1, 2 * SSD1306_LINE_HIGHT, SSD1306_COLOR_BLACK);
-		SSD1306_UpdateScreen(ssd);
-	}
-
-	prev_overall_status = alarm_error->overall_status;
+	PrintChangedParam(ssd, line + 1, changed_param);
+	SSD1306_UpdateScreen(ssd);
 
 	return HAL_OK;
 }
@@ -174,3 +307,126 @@ HAL_StatusTypeDef DisplayUpdateErrorBlink(SSD1306_HandleTypeDef *ssd,
 	return HAL_OK;
 }
 
+HAL_StatusTypeDef DisplaySettings(SSD1306_HandleTypeDef *ssd,
+		volatile SystemConfig_t *system_config) {
+	SSD1306_UpdateArea(ssd, 0, 0, SSD1306_WIDTH,
+	SSD1306_HEIGHT);
+	ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
+
+	switch ((HAL_GetTick() / 3000) % 4) {
+	case 0:
+		ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Temperture settings");
+		SSD1306_SetCursor(ssd, 0, 0);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum error: %.1f",
+				system_config->temperature.min_error);
+		SSD1306_SetCursor(ssd, 0, SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum warning: %.1f",
+				system_config->temperature.min_warning);
+		SSD1306_SetCursor(ssd, 0, 2 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum warning: %.1f",
+				system_config->temperature.max_warning);
+		SSD1306_SetCursor(ssd, 0, 3 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum error: %.1f",
+				system_config->temperature.max_error);
+		SSD1306_SetCursor(ssd, 0, 4 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		break;
+
+	case 1:
+		ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Pressure settings");
+		SSD1306_SetCursor(ssd, 0, 0);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum error: %.1f",
+				system_config->pressure.min_error);
+		SSD1306_SetCursor(ssd, 0, SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum warning: %.1f",
+				system_config->pressure.min_warning);
+		SSD1306_SetCursor(ssd, 0, 2 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum warning: %.1f",
+				system_config->pressure.max_warning);
+		SSD1306_SetCursor(ssd, 0, 3 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum error: %.1f",
+				system_config->pressure.max_error);
+		SSD1306_SetCursor(ssd, 0, 4 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		break;
+
+	case 2:
+		ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Humidity settings");
+		SSD1306_SetCursor(ssd, 0, 0);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum error: %.1f",
+				system_config->humidity.min_error);
+		SSD1306_SetCursor(ssd, 0, SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Minimum warning: %.1f",
+				system_config->humidity.min_warning);
+		SSD1306_SetCursor(ssd, 0, 2 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum warning: %.1f",
+				system_config->humidity.max_warning);
+		SSD1306_SetCursor(ssd, 0, 3 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Maximum error: %.1f",
+				system_config->humidity.max_error);
+		SSD1306_SetCursor(ssd, 0, 4 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		break;
+
+	case 3:
+		ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Others");
+		SSD1306_SetCursor(ssd, 0, 0);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer),
+				"Mesurement inversal (s):%lu",
+				system_config->measurement_interval_s);
+		SSD1306_SetCursor(ssd, 0, SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Display interval (s) :%d",
+				system_config->display_interval_s);
+		SSD1306_SetCursor(ssd, 0, 2 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		snprintf(text_buffer, sizeof(text_buffer), "Hysteresis: %.1f",
+				system_config->alarm_hysteresis);
+		SSD1306_SetCursor(ssd, 0, 3 * SSD1306_LINE_HIGHT);
+		SSD1306_Print(ssd, text_buffer);
+
+		break;
+	}
+
+	SSD1306_UpdateScreen(ssd);
+	return HAL_OK;
+}

@@ -348,7 +348,8 @@ Command_t command_table[] = {
 				SetHysteresis } };
 
 void UART_SendMessage(UART_HandleTypeDef *huart,
-		HAL_StatusTypeDef *command_status, volatile uint8_t *tx_busy) {
+		HAL_StatusTypeDef *command_status, volatile uint8_t *tx_busy,
+		uint8_t *config_changed) {
 	if (parsed.command == NULL) {
 		if (*tx_busy == 0) {
 			HAL_UART_Transmit_IT(huart, (uint8_t*) "UNKNOWN COMMAND\r\n",
@@ -361,6 +362,7 @@ void UART_SendMessage(UART_HandleTypeDef *huart,
 		if (*tx_busy == 0) {
 			HAL_UART_Transmit_IT(huart, (uint8_t*) "ACK\r\n",
 					strlen("ACK\r\n"));
+			*config_changed = 1;
 		}
 	} else {
 		if (*tx_busy == 0) {
@@ -426,7 +428,7 @@ void BuildCommand() {
 	}
 }
 
-ParseCommand_t ParseCommand() {
+ParseCommand_t ParseCommand(ChangedParam_t *changed_param) {
 	ParseCommand_t result = { 0 };
 
 	for (uint8_t i = 0; i < ARRAY_SIZE(command_table); i++) {
@@ -435,6 +437,7 @@ ParseCommand_t ParseCommand() {
 			result.command = &command_table[i];
 			result.param = &rx_command_buffer[strlen(
 					command_table[i].command_name)];
+			*changed_param = i;
 		}
 	}
 
@@ -449,19 +452,20 @@ void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param,
 
 void UART_Task(volatile uint8_t *rx_command_ready,
 		Env_Monitor_HandleTypeDef *env_monitor, UART_HandleTypeDef *huart,
-		volatile uint8_t *tx_busy) {
+		volatile uint8_t *tx_busy, uint8_t *config_changed,
+		ChangedParam_t *changed_param) {
 	float parsed_param = 0;
 	HAL_StatusTypeDef command_status = HAL_ERROR;
 
 	BuildCommand();
-	parsed = ParseCommand();
+	parsed = ParseCommand(changed_param);
 	if (parsed.command == NULL) {
-		UART_SendMessage(huart, &command_status, tx_busy);
+		UART_SendMessage(huart, &command_status, tx_busy, config_changed);
 	} else {
 		parsed_param = strtof(parsed.param, NULL);
 
 		ExecuteCommand(env_monitor, &parsed_param, &command_status);
-		UART_SendMessage(huart, &command_status, tx_busy);
+		UART_SendMessage(huart, &command_status, tx_busy, config_changed);
 	}
 
 	*rx_command_ready = 0;

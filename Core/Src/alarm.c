@@ -8,6 +8,8 @@
 #include "alarm.h"
 #include "system_config.h"
 
+uint8_t buzzer_on_flag = 1;
+
 AlarmStatus_t UpdateSingleAlarmState(float value, volatile Thresholds_t *limits,
 		float hysteresis, AlarmStatus_t current_status) {
 
@@ -77,7 +79,9 @@ void UpdateAlarmIndicators(AlarmStatus_t overall_status) {
 		HAL_GPIO_WritePin(Yellow_LED_GPIO_Port, Yellow_LED_Pin, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(Green_LED_GPIO_Port, Green_LED_Pin, GPIO_PIN_RESET);
 
-		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+		if (buzzer_on_flag) {
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+		}
 		break;
 
 	case ALARM_WARNING:
@@ -86,7 +90,7 @@ void UpdateAlarmIndicators(AlarmStatus_t overall_status) {
 		HAL_GPIO_WritePin(Green_LED_GPIO_Port, Green_LED_Pin, GPIO_PIN_RESET);
 
 		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
-
+		buzzer_on_flag = 1;
 		break;
 
 	default:
@@ -95,5 +99,13 @@ void UpdateAlarmIndicators(AlarmStatus_t overall_status) {
 		HAL_GPIO_WritePin(Green_LED_GPIO_Port, Green_LED_Pin, GPIO_PIN_SET);
 
 		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+		buzzer_on_flag = 1;
 	}
+}
+
+void BuzzerOff(GPIO_PinState buzzer_mute_btn_state) {
+
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+	buzzer_on_flag = 0;
+
 }
