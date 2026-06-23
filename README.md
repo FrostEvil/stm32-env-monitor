@@ -1,29 +1,59 @@
-EnvSentinel — STM32 Environment Monitor
+# EnvSentinel — STM32 Environment Monitor
+
 Embedded environmental monitoring system built on STM32 Nucleo F401RE.
+
 The device periodically measures temperature, humidity, and atmospheric pressure using a BME280 sensor, evaluates measurements against configurable thresholds with hysteresis, and reacts through LEDs, a buzzer, and an OLED display. Measurements and configuration commands are exchanged with a PC over UART.
 
-Project Highlights
+---
 
-STM32F401RE microcontroller
-BME280 environmental sensor (I2C)
-SSD1306 OLED display (I2C)
-Interrupt-driven UART RX/TX
-Ring buffer implementation
-Function pointer command dispatch table
-Alarm state machine with hysteresis
-Runtime configuration via UART
-Watchdog protection and fault recovery
-Modular software architecture
+## Project Highlights
 
+* STM32F401RE microcontroller
+* BME280 environmental sensor (I2C)
+* SSD1306 OLED display (I2C)
+* Interrupt-driven UART RX/TX
+* Ring buffer implementation
+* Function pointer command dispatch table
+* Alarm state machine with hysteresis
+* Runtime configuration via UART
+* Watchdog protection
+* Modular software architecture
 
-Hardware
-ComponentDescriptionSTM32 Nucleo F401REMain microcontroller boardBME280Temperature, humidity and pressure sensorSSD1306 OLED128×64 displayActive buzzerAudible alarmNPN transistorBuzzer driver3× LEDsNORMAL / WARNING / ERROR indication4× Push buttonsUser interactionResistorsLED current limiting and button pull-downs
+---
 
-System States
-The system operates in three alarm states: NORMAL, WARNING, and ERROR. State transitions use configurable hysteresis to prevent alarm chattering near threshold boundaries — the alarm activates when a threshold is crossed but deactivates only after the measurement returns past the hysteresis margin.
+## Hardware
 
-Software Architecture
-text┌─────────────────────────────────────────────┐
+| Component           | Description                                   |
+| ------------------- | --------------------------------------------- |
+| STM32 Nucleo F401RE | Main microcontroller board                    |
+| BME280              | Temperature, humidity and pressure sensor     |
+| SSD1306 OLED        | 128×64 display                                |
+| Active buzzer       | Audible alarm                                 |
+| NPN transistor      | Buzzer driver                                 |
+| 3× LEDs             | Green (NORMAL), Yellow (WARNING), Red (ERROR) |
+| 4× Push buttons     | User interaction                              |
+| Resistors           | LED current limiting and button pull-downs    |
+
+---
+
+## System States
+
+```text
+NORMAL
+   ↓
+WARNING
+   ↓
+ERROR
+```
+
+State transitions use configurable hysteresis to prevent alarm chattering near threshold boundaries.
+
+---
+
+## Software Architecture
+
+```text
+┌─────────────────────────────────────────────┐
 │              Application Layer              │
 │                                             │
 │  alarm.c         display_manager.c          │
@@ -35,81 +65,119 @@ text┌────────────────────────�
 │       bme280.c         ssd1306.c            │
 ├──────────────────────┬──────────────────────┤
 │       Hardware       │       Hardware       │
-│   BME280 (0x76)      │   SSD1306 (0x3C)     │
+│    BME280 (0x76)     │    SSD1306 (0x3C)    │
 └──────────────────────┴──────────────────────┘
+```
+
 The application layer is independent of hardware implementation details. All sensor and display operations are isolated inside dedicated driver modules.
-Driver Layer
-bme280
 
-sensor initialization
-Forced Mode triggering
-calibration handling
-measurement compensation
+### Driver Layer
 
-ssd1306
+#### bme280
 
-display initialization
-framebuffer management
-partial screen updates
+* Sensor initialization
+* Forced Mode triggering
+* Calibration handling
+* Measurement compensation
 
-Application Layer
-alarm
+#### ssd1306
 
-threshold evaluation
-hysteresis handling
-alarm state management
-LED and buzzer control
+* Display initialization
+* Framebuffer management
+* Partial screen updates
 
-display_manager
+### Application Layer
 
-measurement rendering
-status visualization
-configuration feedback screens
+#### alarm
 
-uart_protocol
+* Threshold evaluation
+* Hysteresis handling
+* Alarm state management
+* LED and buzzer control
 
-UART RX ring buffer
-command parsing
-function pointer dispatch table
-ACK / ERR responses
+#### display_manager
 
-button
+* Measurement rendering
+* Status visualization
+* Configuration feedback screens
 
-timer-based debouncing
-edge detection
+#### uart_protocol
 
+* UART RX ring buffer
+* Command parsing
+* Function pointer dispatch table
+* ACK / ERR responses
 
-Communication
-I2C1
-Shared bus for BME280 (0x76) and SSD1306 (0x3C) at 100 kHz.
-USART2
-115200 baud, 8N1, full duplex. TX uses interrupt-driven transmission with a busy flag preventing overlapping transfers. RX uses interrupt-driven reception combined with a ring buffer to prevent data loss.
+#### button
 
-Features
+* Timer-based debouncing
+* Edge detection
 
-Periodic measurements using BME280 Forced Mode
-Configurable measurement interval
-Independent WARNING and ERROR thresholds per parameter
-Configurable alarm hysteresis
-OLED status display with ERROR value blinking
-Runtime configuration through UART
-UART measurement streaming to PC
-Alarm indication using LEDs and buzzer
-Auto-scrolling settings pages on OLED
-Button-controlled user interface
+---
 
+## Communication
 
-UART Data Format
-textT:23.5;H:58.2;P:1013.1;UPT_MS:45230
+### I2C1
 
-T = temperature [°C]
-H = humidity [%RH]
-P = pressure [hPa]
-UPT_MS = uptime from HAL_GetTick()
+Shared bus for:
 
+* BME280 (0x76)
+* SSD1306 (0x3C)
 
-UART Protocol Example
-textPC      -> CMD:SET_INTERVAL:10
+Bus speed: **100 kHz**
+
+### USART2
+
+Configuration:
+
+* 115200 baud
+* 8 data bits
+* No parity
+* 1 stop bit
+* Full duplex
+
+TX uses interrupt-driven transmission with a busy flag preventing overlapping transfers.
+
+RX uses interrupt-driven reception combined with a ring buffer to prevent data loss.
+
+---
+
+## Features
+
+* Periodic measurements using BME280 Forced Mode
+* Configurable measurement interval
+* Independent WARNING and ERROR thresholds
+* Configurable alarm hysteresis
+* OLED status display
+* Runtime configuration through UART
+* UART measurement streaming
+* Alarm indication using LEDs and buzzer
+* Auto-scrolling settings pages
+* Button-controlled user interface
+
+---
+
+## UART Data Format
+
+Example measurement frame:
+
+```text
+T:23.5;H:58.2;P:1013.1;UPT_MS:45230
+```
+
+Where:
+
+* T = temperature [°C]
+* H = humidity [%RH]
+* P = pressure [hPa]
+* UPT_MS = uptime returned by HAL_GetTick()
+
+---
+
+## UART Protocol Example
+
+```text
+PC      -> CMD:SET_INTERVAL:10
 STM32   -> ACK
 
 PC      -> CMD:SET_HYSTERESIS:2
@@ -117,58 +185,143 @@ STM32   -> ACK
 
 PC      -> CMD:SET_HYSTERESIS:100
 STM32   -> ERR
+```
 
-UART Commands
-General format: CMD:PARAMETER:VALUE
-Responses: ACK or ERR
-Threshold Configuration
-Temperature:
+---
 
-CMD:SET_TEMPERATURE_MIN_ERROR:X
-CMD:SET_TEMPERATURE_MAX_ERROR:X
-CMD:SET_TEMPERATURE_MIN_WARNING:X
-CMD:SET_TEMPERATURE_MAX_WARNING:X
+## UART Commands
 
-Pressure:
+General format:
 
-CMD:SET_PRESSURE_MIN_ERROR:X
-CMD:SET_PRESSURE_MAX_ERROR:X
-CMD:SET_PRESSURE_MIN_WARNING:X
-CMD:SET_PRESSURE_MAX_WARNING:X
+```text
+CMD:PARAMETER:VALUE
+```
 
-Humidity:
+Responses:
 
-CMD:SET_HUMIDITY_MIN_ERROR:X
-CMD:SET_HUMIDITY_MAX_ERROR:X
-CMD:SET_HUMIDITY_MIN_WARNING:X
-CMD:SET_HUMIDITY_MAX_WARNING:X
+```text
+ACK
+```
 
-System Configuration
+or
 
-CMD:SET_INTERVAL:X — measurement interval in seconds (min: 2)
-CMD:SET_OSRS:X — BME280 oversampling (0/1/2/4/8/16)
-CMD:SET_HYSTERESIS:X — alarm hysteresis in units (0–5)
-CMD:SET_CONTRAST:X — OLED contrast (0–100)
-CMD:SET_INVERSE_DISPLAY:ON|OFF — invert OLED display colors
+```text
+ERR
+```
 
+### Threshold Configuration
 
-Error Handling
-Initialization failure — up to 5 retry attempts with 500ms delay. After 5 failures: red LED blinks for 3 seconds, then system reset.
-Measurement trigger failure — retry every 5 seconds with LD2 blinking. After 5 failed retries: system reset.
-Measurement read failure — consecutive failure counter incremented. On recovery: UART notification with failure count. After 10 consecutive failures: system reset.
-Watchdog (IWDG) — 5-second hardware timeout, refreshed every main loop iteration as last-resort protection against software lockups.
+#### Temperature
 
-What I Learned
-This project was my first attempt at building a complete embedded system rather than a standalone peripheral driver. The biggest shift was learning to think in modules — separating what each piece of code is responsible for and making sure they don't bleed into each other. Getting alarm.c to know nothing about the OLED, and ssd1306.c to know nothing about alarms, took more discipline than I expected.
-I learned interrupt-driven UART both ways — TX with a busy flag to avoid race conditions, and RX with a ring buffer to avoid losing bytes between processing cycles. Writing the command parser with a function pointer lookup table was one of the more satisfying parts — it replaced what would have been a giant switch/case with something that actually scales.
-Timer-based debouncing, volatile on shared variables, and watchdog configuration were things I had read about but never implemented myself. Debugging with STM32CubeIDE — breakpoints, the Expressions window, checking whether interrupts actually fire — became a daily habit rather than a last resort.
-On the hardware side I learned to drive a buzzer through a transistor, calculate resistor values for LEDs, use pull-down resistors on GPIO inputs, and integrate multiple I2C devices on a shared bus.
+* CMD:SET_TEMPERATURE_MIN_ERROR:X
+* CMD:SET_TEMPERATURE_MAX_ERROR:X
+* CMD:SET_TEMPERATURE_MIN_WARNING:X
+* CMD:SET_TEMPERATURE_MAX_WARNING:X
 
-Future Improvements
-RTC Integration — add battery-backed RTC to timestamp measurements with real date and time instead of uptime milliseconds.
-Python Data Logger — PC-side script using pyserial to log measurements to CSV, calculate periodic averages, and generate matplotlib charts.
-Extended OLED UI — allow threshold configuration directly on the device without requiring a PC connection.
-Custom PCB — design a dedicated board in KiCad integrating all components into a compact standalone device.
+#### Pressure
 
-License
+* CMD:SET_PRESSURE_MIN_ERROR:X
+* CMD:SET_PRESSURE_MAX_ERROR:X
+* CMD:SET_PRESSURE_MIN_WARNING:X
+* CMD:SET_PRESSURE_MAX_WARNING:X
+
+#### Humidity
+
+* CMD:SET_HUMIDITY_MIN_ERROR:X
+* CMD:SET_HUMIDITY_MAX_ERROR:X
+* CMD:SET_HUMIDITY_MIN_WARNING:X
+* CMD:SET_HUMIDITY_MAX_WARNING:X
+
+### System Configuration
+
+* CMD:SET_INTERVAL:X
+* CMD:SET_OSRS:X
+* CMD:SET_HYSTERESIS:X
+* CMD:SET_CONTRAST:X
+* CMD:SET_INVERSE_DISPLAY:ON
+* CMD:SET_INVERSE_DISPLAY:OFF
+
+---
+
+## Error Handling
+
+### Initialization Failure
+
+* Up to 5 retry attempts
+* 500 ms delay between retries
+* System reset after unsuccessful recovery
+
+### Measurement Trigger Failure
+
+* Retry on subsequent measurement cycles
+* Failure indication via status LED
+* System reset after repeated failures
+
+### Measurement Read Failure
+
+* Consecutive failure counter
+* Successful measurement resets the counter
+* System reset after configured failure limit
+
+### Independent Watchdog (IWDG)
+
+* Hardware-level protection against software lockups
+* Automatic recovery through system reset
+
+---
+
+## What I Learned
+
+This project was my first attempt at building a complete embedded application rather than a standalone peripheral driver.
+
+Key topics explored during development:
+
+* Modular software design
+* Interrupt-driven UART communication
+* Ring buffer implementation
+* Function pointer dispatch tables
+* Alarm state machines
+* Hysteresis implementation
+* Timer-based debouncing
+* Watchdog configuration
+* Embedded fault handling
+* STM32CubeIDE debugging techniques
+* I2C peripheral integration
+
+On the hardware side I learned how to:
+
+* Drive external loads using a transistor stage
+* Select resistor values for LEDs
+* Use pull-down resistors on GPIO inputs
+* Integrate multiple devices on a shared I2C bus
+* Debug mixed hardware/software issues
+
+---
+
+## Future Improvements
+
+### RTC Integration
+
+Add battery-backed RTC support to timestamp measurements with real date and time.
+
+### Python Data Logger
+
+Create a PC application that:
+
+* Logs measurements to CSV
+* Calculates averages
+* Generates charts using matplotlib
+
+### Extended OLED UI
+
+Allow threshold configuration directly from the device without requiring UART commands.
+
+### Custom PCB
+
+Design a dedicated PCB integrating all system components into a compact standalone device.
+
+---
+
+## License
+
 MIT License
