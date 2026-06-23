@@ -13,15 +13,17 @@
 #include "display_manager.h"
 #include "alarm.h"
 
+#define X_OFFSET 80
+
 char text_buffer[64];
 
-void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
+static void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
 		uint8_t height) {
 	SSD1306_FillRectangle(ssd, x, y, width, height, SSD1306_COLOR_BLACK);
 
 }
 
-void PrintStartingScreen(SSD1306_HandleTypeDef *ssd) {
+static void PrintStartingScreen(SSD1306_HandleTypeDef *ssd) {
 	char *text_layout[4] =
 			{ "Temperature:", "Pressure:", "Humidity:", "Status:" };
 
@@ -31,7 +33,7 @@ void PrintStartingScreen(SSD1306_HandleTypeDef *ssd) {
 	}
 }
 
-void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
+static void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		float *measurement) {
 
 	snprintf(text_buffer, sizeof(text_buffer), "%.1f", *measurement);
@@ -41,7 +43,7 @@ void PrintMeasurement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_Print(ssd, text_buffer);
 }
 
-void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
+static void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		AlarmStatus_t overall_status) {
 
 	ClearArea(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
@@ -65,7 +67,7 @@ void PrintStatus(SSD1306_HandleTypeDef *ssd, uint8_t line,
 
 }
 
-void PrintInfoStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
+static void PrintInfoStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
 	SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,
 			(SSD1306_WIDTH - X_OFFSET), SSD1306_LINE_HIGHT,
 			SSD1306_COLOR_BLACK);
@@ -77,7 +79,7 @@ void PrintInfoStatus(SSD1306_HandleTypeDef *ssd, uint8_t line) {
 	SSD1306_Print(ssd, text_buffer);
 }
 
-void PrintChangedParam(SSD1306_HandleTypeDef *ssd, uint8_t line,
+static void PrintChangedParam(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		ChangedParam_t changed_param) {
 
 	snprintf(text_buffer, sizeof(text_buffer), "Statement: ");
@@ -161,7 +163,7 @@ void PrintChangedParam(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_Print(ssd, text_buffer);
 }
 
-HAL_StatusTypeDef PrintStatement(SSD1306_HandleTypeDef *ssd, uint8_t line,
+static HAL_StatusTypeDef PrintErrorStatement(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		AlarmState_t *alarm_state) {
 
 	ClearArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
@@ -202,7 +204,7 @@ HAL_StatusTypeDef DisplayStartingScreen(SSD1306_HandleTypeDef *ssd) {
 	SSD1306_UpdateScreen(ssd);
 
 	return HAL_OK;
-	//TODO: add new, unique TypeDefStatus structure
+
 }
 
 HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
@@ -224,7 +226,7 @@ HAL_StatusTypeDef DisplayMeasurements(SensorData_t *sensor_data,
 			SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, 128,
 					2 * SSD1306_LINE_HIGHT);
 
-			PrintStatement(ssd, 4, alarm_error);
+			PrintErrorStatement(ssd, 4, alarm_error);
 			SSD1306_UpdateScreen(ssd);
 		} else {
 			SSD1306_UpdateArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
@@ -261,8 +263,6 @@ HAL_StatusTypeDef HideDisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_HEIGHT);
 	PrintStatus(ssd, 3, overall_status);
 
-//	SSD1306_UpdateArea(ssd, 0, (line + 1) * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
-//			2 * SSD1306_LINE_HIGHT);
 	ClearArea(ssd, 0, (line + 1) * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
 			2 * SSD1306_LINE_HIGHT);
 	SSD1306_UpdateScreen(ssd);
@@ -270,7 +270,7 @@ HAL_StatusTypeDef HideDisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef PrintErrorBlink(SSD1306_HandleTypeDef *ssd, uint8_t line,
+static HAL_StatusTypeDef PrintErrorBlink(SSD1306_HandleTypeDef *ssd, uint8_t line,
 		float *measurement, uint8_t *blink_on) {
 
 	if (*blink_on) {
@@ -310,13 +310,12 @@ HAL_StatusTypeDef DisplaySettings(SSD1306_HandleTypeDef *ssd,
 		volatile SystemConfig_t *system_config) {
 	SSD1306_UpdateArea(ssd, 0, 0, SSD1306_WIDTH,
 	SSD1306_HEIGHT);
-	ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
 
 	switch ((HAL_GetTick() / 3000) % 4) {
 	case 0:
 		ClearArea(ssd, 0, 0, SSD1306_WIDTH - 1, SSD1306_HEIGHT - 1);
 
-		snprintf(text_buffer, sizeof(text_buffer), "Temperture settings");
+		snprintf(text_buffer, sizeof(text_buffer), "Temperature settings");
 		SSD1306_SetCursor(ssd, 0, 0);
 		SSD1306_Print(ssd, text_buffer);
 
@@ -408,7 +407,7 @@ HAL_StatusTypeDef DisplaySettings(SSD1306_HandleTypeDef *ssd,
 		SSD1306_Print(ssd, text_buffer);
 
 		snprintf(text_buffer, sizeof(text_buffer),
-				"Mesurement inversal (s):%lu",
+				"Measurement interval (s):%lu",
 				system_config->measurement_interval_s);
 		SSD1306_SetCursor(ssd, 0, SSD1306_LINE_HIGHT);
 		SSD1306_Print(ssd, text_buffer);

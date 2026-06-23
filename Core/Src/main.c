@@ -31,6 +31,7 @@
 #include "uart_protocol.h"
 #include "alarm.h"
 #include "button.h"
+#include "iwdg.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -120,6 +121,7 @@ int main(void) {
 	MX_I2C1_Init();
 	MX_TIM10_Init();
 	MX_TIM11_Init();
+	MX_IWDG_Init();
 	/* USER CODE BEGIN 2 */
 
 	HAL_TIM_Base_Start_IT(&htim10);
@@ -141,8 +143,7 @@ int main(void) {
 	env_monitor.sensor_data.timestamp_ms = HAL_GetTick();
 
 	env_monitor.ssd.hi2c = &hi2c1;
-	env_monitor.ssd.address = SSD1306_I2C_ADDR
-	;
+	env_monitor.ssd.address = SSD1306_I2C_ADDR;
 
 	env_monitor.system_config.temperature.min_warning = -5.0f;
 	env_monitor.system_config.temperature.max_warning = 30.0f;
@@ -167,14 +168,41 @@ int main(void) {
 	uint8_t config_changed = 0;
 	uint8_t settings_showed = 0;
 	uint8_t display_info_showed = 0;
+	uint8_t init_counter = 0;
+	uint8_t reset_counter = 0;
 
-	if (BME280_Init(&env_monitor.bme) != HAL_OK) {
-		// TODO: add error handling later.
-//		HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	uint32_t prev_tick_slot = 0;
+	uint32_t curr_tick_slot = 0;
+	uint8_t trigger_forced_counter = 0;
+
+	uint8_t unsuccessful_measurements = 0;
+
+	while (init_counter <= 5) {
+		HAL_IWDG_Refresh(&hiwdg);
+
+		if (BME280_Init(&env_monitor.bme) == HAL_OK
+				&& SSD1306_Init(&env_monitor.ssd) == SSD1306_OK) {
+			break;
+		} else {
+			init_counter++;
+			HAL_Delay(500);
+		}
+
 	}
 
-	if (SSD1306_Init(&env_monitor.ssd) != SSD1306_OK) {
-		// TODO: add error handling later.
+	if (init_counter > 5) {
+
+		while (reset_counter <= 5) {
+			HAL_IWDG_Refresh(&hiwdg);
+
+			HAL_GPIO_WritePin(Red_LED_GPIO_Port, Red_LED_Pin,
+					(HAL_GetTick() / 250) % 2);
+			HAL_Delay(500);
+			reset_counter++;
+		}
+
+		NVIC_SystemReset();
+
 	}
 
 	DisplayStartingScreen(&env_monitor.ssd);
@@ -235,12 +263,35 @@ int main(void) {
 
 		if (measurement_flag) {
 
+			curr_tick_slot = HAL_GetTick() / 5000;
+
 			if (measurement_in_progress == 0) {
+
 				if (BME280_TriggerForcedMeasurement(&env_monitor.bme)
 						== HAL_OK) {
 					measurement_in_progress = 1;
+					trigger_forced_counter = 0;
 				} else {
-					// TODO: add error handling later.
+
+					HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,
+							(HAL_GetTick() / 500) % 2);
+
+					if (curr_tick_slot != prev_tick_slot) {
+						trigger_forced_counter++;
+
+						if (BME280_TriggerForcedMeasurement(&env_monitor.bme)
+								== HAL_OK) {
+							measurement_in_progress = 1;
+							trigger_forced_counter = 0;
+
+						}
+					}
+					prev_tick_slot = curr_tick_slot;
+				}
+
+				if (trigger_forced_counter >= 5) {
+
+					NVIC_SystemReset();
 				}
 			}
 
@@ -251,6 +302,24 @@ int main(void) {
 						&env_monitor.sensor_data.temperature,
 						&env_monitor.sensor_data.pressure,
 						&env_monitor.sensor_data.humidity) == HAL_OK) {
+
+					if (unsuccessful_measurements > 0) {
+
+						if (tx_busy == 0) {
+							snprintf(tx_sensor_data_buffer,
+									sizeof(tx_sensor_data_buffer),
+									"I2C issue, %d unsuccessful measurements!",
+									unsuccessful_measurements);
+
+							if (HAL_UART_Transmit_IT(&huart2,
+									tx_sensor_data_buffer,
+									strlen(tx_sensor_data_buffer)) == HAL_OK) {
+								tx_busy = 1;
+							}
+						}
+
+						unsuccessful_measurements = 0;
+					}
 
 					first_measurement_flag = 1;
 
@@ -266,7 +335,7 @@ int main(void) {
 					env_monitor.sensor_data.timestamp_ms = HAL_GetTick();
 					snprintf(tx_sensor_data_buffer,
 							sizeof(tx_sensor_data_buffer),
-							"T:%.1f;H:%.1f;P%.1f;UPT_MS:%lu;\r\n",
+							"T:%.1f;H:%.1f;P:%.1f;UPT_MS:%lu;\r\n",
 							env_monitor.sensor_data.temperature,
 							env_monitor.sensor_data.humidity,
 							env_monitor.sensor_data.pressure,
@@ -283,11 +352,18 @@ int main(void) {
 					}
 
 				} else {
-					// TODO: add error handling later.
+					unsuccessful_measurements++;
+
+					if (unsuccessful_measurements >= 10) {
+						NVIC_SystemReset();
+					}
+
 				}
 
 			}
 		}
+
+		HAL_IWDG_Refresh(&hiwdg);
 	}
 
 	/* USER CODE END 3 */
@@ -309,9 +385,11 @@ void SystemClock_Config(void) {
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI
+			| RCC_OSCILLATORTYPE_LSI;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
 	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
 	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
 	RCC_OscInitStruct.PLL.PLLM = 16;

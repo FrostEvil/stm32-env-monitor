@@ -22,7 +22,8 @@ typedef struct {
 	AlarmStatus_t humidity_status;
 } AlarmState_t;
 
-void UpdateAlarmState(volatile SystemConfig_t *system_config, SensorData_t *sensor_data,
-		AlarmState_t *alarm_state);
+void UpdateAlarmState(volatile SystemConfig_t *system_config,
+		SensorData_t *sensor_data, AlarmState_t *alarm_state);
 void UpdateAlarmIndicators(AlarmStatus_t overall_status);
+void BuzzerOff(void);
 #endif /* INC_ALARM_H_ */
