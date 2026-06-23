@@ -17,8 +17,8 @@
 
 char text_buffer[64];
 
-static void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y, uint8_t width,
-		uint8_t height) {
+static void ClearArea(SSD1306_HandleTypeDef *ssd, uint8_t x, uint8_t y,
+		uint8_t width, uint8_t height) {
 	SSD1306_FillRectangle(ssd, x, y, width, height, SSD1306_COLOR_BLACK);
 
 }
@@ -163,8 +163,8 @@ static void PrintChangedParam(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_Print(ssd, text_buffer);
 }
 
-static HAL_StatusTypeDef PrintErrorStatement(SSD1306_HandleTypeDef *ssd, uint8_t line,
-		AlarmState_t *alarm_state) {
+static HAL_StatusTypeDef PrintErrorStatement(SSD1306_HandleTypeDef *ssd,
+		uint8_t line, AlarmState_t *alarm_state) {
 
 	ClearArea(ssd, 0, 4 * SSD1306_LINE_HIGHT, SSD1306_WIDTH - 1,
 			2 * SSD1306_LINE_HIGHT);
@@ -248,6 +248,8 @@ HAL_StatusTypeDef DisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	SSD1306_UpdateArea(ssd, 0, line * SSD1306_LINE_HIGHT, SSD1306_WIDTH,
 	SSD1306_HEIGHT);
 
+	ClearArea(ssd, 0, line * SSD1306_LINE_HIGHT, SSD1306_WIDTH, SSD1306_HEIGHT);
+
 	PrintInfoStatus(ssd, line);
 	SSD1306_UpdateScreen(ssd);
 
@@ -270,8 +272,8 @@ HAL_StatusTypeDef HideDisplayInfo(SSD1306_HandleTypeDef *ssd, uint8_t line,
 	return HAL_OK;
 }
 
-static HAL_StatusTypeDef PrintErrorBlink(SSD1306_HandleTypeDef *ssd, uint8_t line,
-		float *measurement, uint8_t *blink_on) {
+static HAL_StatusTypeDef PrintErrorBlink(SSD1306_HandleTypeDef *ssd,
+		uint8_t line, float *measurement, uint8_t *blink_on) {
 
 	if (*blink_on) {
 		SSD1306_FillRectangle(ssd, X_OFFSET, line * SSD1306_LINE_HIGHT,

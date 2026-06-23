@@ -312,7 +312,7 @@ int main(void) {
 									unsuccessful_measurements);
 
 							if (HAL_UART_Transmit_IT(&huart2,
-									tx_sensor_data_buffer,
+									(uint8_t*) tx_sensor_data_buffer,
 									strlen(tx_sensor_data_buffer)) == HAL_OK) {
 								tx_busy = 1;
 							}
