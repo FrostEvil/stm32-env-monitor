@@ -31,7 +31,6 @@ extern "C" {
 #include "ssd1306.h"
 #include "bme280.h"
 #include "system_config.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

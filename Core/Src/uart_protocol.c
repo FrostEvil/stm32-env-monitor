@@ -14,18 +14,18 @@
 #include "ssd1306.h"
 #include "bme280.h"
 
-char rx_data_buffer[RX_RING_BUFFER_SIZE];
-char rx_command_buffer[RX_COMMAND_BUFFER_SIZE];
-uint8_t rx_head = 0;
-uint8_t rx_tail = 0;
-uint8_t command_index = 0;
+static char rx_data_buffer[RX_RING_BUFFER_SIZE];
+static char rx_command_buffer[RX_COMMAND_BUFFER_SIZE];
+static uint8_t rx_head = 0;
+static uint8_t rx_tail = 0;
+static uint8_t command_index = 0;
 
-uint8_t rx_data_overflow = 0;
-uint8_t rx_command_overflow = 0;
+static uint8_t rx_data_overflow = 0;
+static uint8_t rx_command_overflow = 0;
 
-ParseCommand_t parsed;
+static ParseCommand_t parsed;
 
-HAL_StatusTypeDef SetTempMinErr(char *param,
+static HAL_StatusTypeDef SetTempMinErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -40,7 +40,7 @@ HAL_StatusTypeDef SetTempMinErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetTempMaxErr(char *param,
+static HAL_StatusTypeDef SetTempMaxErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -55,7 +55,7 @@ HAL_StatusTypeDef SetTempMaxErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetTempMinWar(char *param,
+static HAL_StatusTypeDef SetTempMinWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -71,7 +71,7 @@ HAL_StatusTypeDef SetTempMinWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetTempMaxWar(char *param,
+static HAL_StatusTypeDef SetTempMaxWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -88,7 +88,7 @@ HAL_StatusTypeDef SetTempMaxWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetPressMinErr(char *param,
+static HAL_StatusTypeDef SetPressMinErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -103,7 +103,7 @@ HAL_StatusTypeDef SetPressMinErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetPressMaxErr(char *param,
+static HAL_StatusTypeDef SetPressMaxErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -118,7 +118,7 @@ HAL_StatusTypeDef SetPressMaxErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetPressMinWar(char *param,
+static HAL_StatusTypeDef SetPressMinWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -134,7 +134,7 @@ HAL_StatusTypeDef SetPressMinWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetPressMaxWar(char *param,
+static HAL_StatusTypeDef SetPressMaxWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -149,7 +149,7 @@ HAL_StatusTypeDef SetPressMaxWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetHumMinErr(char *param,
+static HAL_StatusTypeDef SetHumMinErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -164,7 +164,7 @@ HAL_StatusTypeDef SetHumMinErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetHumMaxErr(char *param,
+static HAL_StatusTypeDef SetHumMaxErr(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -179,7 +179,7 @@ HAL_StatusTypeDef SetHumMaxErr(char *param,
 
 }
 
-HAL_StatusTypeDef SetHumMinWar(char *param,
+static HAL_StatusTypeDef SetHumMinWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -195,7 +195,7 @@ HAL_StatusTypeDef SetHumMinWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetHumMaxWar(char *param,
+static HAL_StatusTypeDef SetHumMaxWar(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL
@@ -210,7 +210,7 @@ HAL_StatusTypeDef SetHumMaxWar(char *param,
 
 }
 
-HAL_StatusTypeDef SetInverseDisplay(char *param,
+static HAL_StatusTypeDef SetInverseDisplay(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 	(void) parsed_param;
 
@@ -229,7 +229,7 @@ HAL_StatusTypeDef SetInverseDisplay(char *param,
 	}
 }
 
-HAL_StatusTypeDef SetInterval(char *param,
+static HAL_StatusTypeDef SetInterval(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL || *parsed_param <= 2) {
@@ -242,8 +242,8 @@ HAL_StatusTypeDef SetInterval(char *param,
 	return HAL_OK;
 }
 
-HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor,
-		float *parsed_param) {
+static HAL_StatusTypeDef SetOsrs(char *param,
+		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL) {
 		return HAL_ERROR;
@@ -252,22 +252,21 @@ HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor,
 	switch ((uint8_t) *parsed_param) {
 	case 0:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_SKIPPED);
-		break;
+
 	case 1:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X1);
-		break;
+
 	case 2:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X2);
-		break;
+
 	case 4:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X4);
-		break;
+
 	case 8:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X8);
-		break;
+
 	case 16:
 		return BME280_SetOversampling(&env_monitor->bme, BME280_OSRS_X16);
-		break;
 
 	default:
 		return HAL_ERROR;
@@ -275,23 +274,17 @@ HAL_StatusTypeDef SetOsrs(char *param, Env_Monitor_HandleTypeDef *env_monitor,
 
 }
 
-HAL_StatusTypeDef SetContrast(char *param,
+static HAL_StatusTypeDef SetContrast(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 
 	if (param == NULL || *parsed_param > 100) {
 		return HAL_ERROR;
 	}
 
-	if (SSD1306_SetContrast(&env_monitor->ssd, (uint8_t) *parsed_param)
-			== HAL_OK) {
-		return HAL_OK;
-	} else {
-		return HAL_ERROR;
-	}
-
+	return SSD1306_SetContrast(&env_monitor->ssd, (uint8_t) *parsed_param);
 }
 
-HAL_StatusTypeDef SetHysteresis(char *param,
+static HAL_StatusTypeDef SetHysteresis(char *param,
 		Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param) {
 	if (param == NULL || *parsed_param <= 0 || *parsed_param > 5) {
 		return HAL_ERROR;
@@ -326,7 +319,7 @@ HAL_StatusTypeDef SetHysteresis(char *param,
 	return HAL_OK;
 }
 
-Command_t command_table[] = {
+static Command_t command_table[] = {
 		{ "CMD:SET_TEMPERATURE_MIN_ERROR:", SetTempMinErr }, {
 				"CMD:SET_TEMPERATURE_MAX_ERROR:", SetTempMaxErr }, {
 				"CMD:SET_TEMPERATURE_MIN_WARNING:", SetTempMinWar }, {
@@ -395,7 +388,7 @@ void UART_ProcessRxData(uint8_t *rx_data, volatile uint8_t *rx_command_ready) {
 
 }
 
-void BuildCommand() {
+static void BuildCommand() {
 	if (rx_command_overflow != 1) {
 
 		while (rx_data_buffer[rx_tail] != '\n') {
@@ -428,7 +421,7 @@ void BuildCommand() {
 	}
 }
 
-ParseCommand_t ParseCommand(ChangedParam_t *changed_param) {
+static ParseCommand_t ParseCommand(ChangedParam_t *changed_param) {
 	ParseCommand_t result = { 0 };
 
 	for (uint8_t i = 0; i < ARRAY_SIZE(command_table); i++) {
@@ -444,8 +437,8 @@ ParseCommand_t ParseCommand(ChangedParam_t *changed_param) {
 	return result;
 }
 
-void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor, float *parsed_param,
-		HAL_StatusTypeDef *command_status) {
+static void ExecuteCommand(Env_Monitor_HandleTypeDef *env_monitor,
+		float *parsed_param, HAL_StatusTypeDef *command_status) {
 	*command_status = parsed.command->handler(parsed.param, env_monitor,
 			parsed_param);
 }

@@ -8,9 +8,9 @@
 #include "alarm.h"
 
 
-uint8_t buzzer_on_flag = 1;
+static uint8_t buzzer_on_flag = 1;
 
-AlarmStatus_t UpdateSingleAlarmState(float value, volatile Thresholds_t *limits,
+static AlarmStatus_t UpdateSingleAlarmState(float value, volatile Thresholds_t *limits,
 		float hysteresis, AlarmStatus_t current_status) {
 
 	switch (current_status) {
@@ -103,7 +103,7 @@ void UpdateAlarmIndicators(AlarmStatus_t overall_status) {
 	}
 }
 
-void BuzzerOff() {
+void BuzzerOff(void) {
 
 	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 	buzzer_on_flag = 0;
