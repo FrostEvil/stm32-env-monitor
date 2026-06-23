@@ -322,6 +322,3 @@ Design a dedicated PCB integrating all system components into a compact standalo
 
 ---
 
-## License
-
-MIT License
