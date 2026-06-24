@@ -321,4 +321,6 @@ Allow threshold configuration directly from the device without requiring UART co
 Design a dedicated PCB integrating all system components into a compact standalone device.
 
 ---
+### Schematic
 
+[View Schematic](Env_Monitor_Schema.pdf)
